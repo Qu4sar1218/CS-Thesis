@@ -61,6 +61,7 @@ student_info = {
                                 "schedule": ["7:30 - Thesis", "10:30 - Capstone", "3:00 - Cloud Computing"]},
     "John Uriel F. Medina": {"course": "BSPsych", "year": "1st Year", "section": "D",
                              "schedule": ["7:30 - IDk", "10:30 - Idk", "3:00 - Ewan IDK"]}
+    
 }
 
 # -------------------------------
@@ -80,6 +81,92 @@ def eye_aspect_ratio(landmarks, eye_points):
     return (p2_p6 + p3_p5) / (2.0 * p1_p4)
 
 # -------------------------------
+# Brightness Detection and Adjustment
+# -------------------------------
+DARK_THRESHOLD = 60  # Brightness threshold (0-255)
+MIN_BRIGHTNESS = -64  # Minimum brightness adjustment
+MAX_BRIGHTNESS = 100  # Maximum brightness adjustment
+BRIGHTNESS_STEP = 10  # Step size for brightness adjustment
+
+class BrightnessController:
+    def __init__(self):
+        self.current_brightness = 0
+        self.target_brightness = 0
+        self.last_adjustment_time = 0
+        self.adjustment_cooldown = 2.0  # Wait 2 seconds between adjustments
+        
+    def calculate_frame_brightness(self, frame):
+        """Calculate average brightness of the frame"""
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        return np.mean(gray)
+    
+    def calculate_face_brightness(self, frame, face_locations):
+        """Calculate average brightness in face regions"""
+        if not face_locations:
+            return self.calculate_frame_brightness(frame)
+        
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        face_brightnesses = []
+        
+        for (top, right, bottom, left) in face_locations:
+            # Ensure coordinates are within frame bounds
+            top = max(0, min(top, frame.shape[0]-1))
+            bottom = max(0, min(bottom, frame.shape[0]-1))
+            left = max(0, min(left, frame.shape[1]-1))
+            right = max(0, min(right, frame.shape[1]-1))
+            
+            if right > left and bottom > top:
+                face_region = gray[top:bottom, left:right]
+                if face_region.size > 0:
+                    face_brightnesses.append(np.mean(face_region))
+        
+        return np.mean(face_brightnesses) if face_brightnesses else self.calculate_frame_brightness(frame)
+    
+    def should_adjust_brightness(self, brightness, has_face):
+        """Determine if brightness adjustment is needed"""
+        current_time = time.time()
+        
+        # Only adjust if cooldown period has passed
+        if current_time - self.last_adjustment_time < self.adjustment_cooldown:
+            return False, 0
+        
+        # If face detected and brightness is too low, increase brightness
+        if has_face and brightness < DARK_THRESHOLD:
+            needed_adjustment = min(BRIGHTNESS_STEP, MAX_BRIGHTNESS - self.current_brightness)
+            if needed_adjustment > 0:
+                return True, needed_adjustment
+        
+        # If no face or brightness is good, gradually return to normal
+        elif self.current_brightness > 0:
+            needed_adjustment = max(-BRIGHTNESS_STEP, MIN_BRIGHTNESS - self.current_brightness)
+            if needed_adjustment < 0:
+                return True, needed_adjustment
+        
+        return False, 0
+    
+    def adjust_brightness(self, frame, adjustment=None):
+        """Apply brightness adjustment to frame"""
+        if adjustment is not None:
+            self.current_brightness = max(MIN_BRIGHTNESS, min(MAX_BRIGHTNESS, 
+                                        self.current_brightness + adjustment))
+            self.last_adjustment_time = time.time()
+        
+        if self.current_brightness == 0:
+            return frame
+        
+        # Convert to float to avoid overflow
+        adjusted = frame.astype(np.float32)
+        adjusted = adjusted + self.current_brightness
+        
+        # Clip values to valid range
+        adjusted = np.clip(adjusted, 0, 255)
+        
+        return adjusted.astype(np.uint8)
+
+# Initialize brightness controller
+brightness_controller = BrightnessController()
+
+# -------------------------------
 # Tracking states
 # -------------------------------
 liveness_states = {}
@@ -87,6 +174,7 @@ attendance = {}
 last_scanned_student = None
 detected_name = "Unknown"
 student_details = {}
+current_brightness_level = 0
 
 # -------------------------------
 # Test endpoint
@@ -160,7 +248,7 @@ def background_face_recognition():
         time.sleep(0.1)
 
 def generate_frames():
-    global processing_frame, recognition_results, recognition_thread
+    global processing_frame, recognition_results, recognition_thread, current_brightness_level
     
     if recognition_thread is None or not recognition_thread.is_alive():
         recognition_thread = threading.Thread(target=background_face_recognition, daemon=True)
@@ -327,13 +415,44 @@ def generate_frames():
             consecutive_failures = 0
             
             frame = cv2.flip(frame, 1)
+            
+            # Get current face detection results
+            with processing_lock:
+                current_locations = recognition_results["locations"].copy()
+                current_names = recognition_results["names"].copy()
+                last_update = recognition_results["last_update"]
+            
+            # Clear old results
+            if time.time() - last_update > 2.0:
+                current_locations, current_names = [], []
+            
+            # Check brightness and adjust if needed
+            has_faces = len(current_locations) > 0
+            if has_faces:
+                brightness_level = brightness_controller.calculate_face_brightness(frame, current_locations)
+            else:
+                brightness_level = brightness_controller.calculate_frame_brightness(frame)
+            
+            # Determine if brightness adjustment is needed
+            should_adjust, adjustment = brightness_controller.should_adjust_brightness(brightness_level, has_faces)
+            
+            # Apply brightness adjustment
+            if should_adjust:
+                print(f"[INFO] Adjusting brightness by {adjustment} (current: {brightness_controller.current_brightness})")
+            
+            frame = brightness_controller.adjust_brightness(frame, adjustment if should_adjust else None)
+            current_brightness_level = brightness_controller.current_brightness
+            
+            # Convert to RGB for processing
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame_count += 1
             
+            # Send frame for recognition processing every 3rd frame
             if frame_count % 3 == 0:
                 with processing_lock:
                     processing_frame = rgb_frame.copy()
             
+            # Blink detection
             blink_detected = False
             results = face_mesh.process(rgb_frame)
             if results.multi_face_landmarks:
@@ -350,14 +469,7 @@ def generate_frames():
                                 if name in liveness_states:
                                     liveness_states[name] = True
             
-            with processing_lock:
-                current_locations = recognition_results["locations"].copy()
-                current_names = recognition_results["names"].copy()
-                last_update = recognition_results["last_update"]
-            
-            if time.time() - last_update > 2.0:
-                current_locations, current_names = [], []
-            
+            # Draw face rectangles and names
             for i, (top, right, bottom, left) in enumerate(current_locations):
                 if i < len(current_names):
                     name = current_names[i]
@@ -370,11 +482,20 @@ def generate_frames():
                         cv2.putText(frame, name, (left, max(top - 10, 10)),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             
-            # Add frame info for debugging
+            # Add frame info and brightness status
             cv2.putText(frame, f"Frame: {frame_count}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             cv2.putText(frame, f"Time: {datetime.now().strftime('%H:%M:%S')}", (10, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(frame, f"Brightness: {int(brightness_level)}", (10, 70),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.putText(frame, f"Adjustment: {current_brightness_level:+d}", (10, 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            
+            # Add brightness status indicator
+            brightness_color = (0, 255, 0) if brightness_level >= DARK_THRESHOLD else (0, 0, 255)
+            cv2.putText(frame, "DARK" if brightness_level < DARK_THRESHOLD else "OK", 
+                       (frame.shape[1] - 80, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, brightness_color, 2)
             
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 80]
             _, buffer = cv2.imencode('.jpg', frame, encode_param)
@@ -409,6 +530,8 @@ def get_status():
         "student_details": student_details,
         "liveness": liveness_states.get(detected_name, False),
         "last_scanned": last_scanned_student,
+        "brightness_level": current_brightness_level,
+        "auto_brightness_active": current_brightness_level != 0
     })
 
 @app.get("/attendance")
@@ -418,17 +541,28 @@ def get_attendance():
         "total_present": len(attendance)
     })
 
+@app.get("/brightness")
+def get_brightness_info():
+    return JSONResponse({
+        "current_adjustment": current_brightness_level,
+        "dark_threshold": DARK_THRESHOLD,
+        "auto_adjustment_active": current_brightness_level != 0,
+        "brightness_range": {"min": MIN_BRIGHTNESS, "max": MAX_BRIGHTNESS}
+    })
+
 # -------------------------------
 # Run the server
 # -------------------------------
 if __name__ == "__main__":
     print("=" * 50)
     print("Face Attendance System Server Starting...")
+    print("Enhanced with Auto Brightness Adjustment")
     print("=" * 50)
     print("API Docs: http://localhost:8000/docs")
     print("Video Stream: http://localhost:8000/video")
     print("Status: http://localhost:8000/status")
     print("Attendance: http://localhost:8000/attendance")
+    print("Brightness Info: http://localhost:8000/brightness")
     print("=" * 50)
     
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
