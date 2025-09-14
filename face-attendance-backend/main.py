@@ -258,7 +258,6 @@ def generate_frames():
     cap = None
     
     # Method 1: Try with DirectShow (Windows)
-    print("[INFO] Trying camera with DirectShow...")
     try:
         cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
         if cap.isOpened():
@@ -267,19 +266,15 @@ def generate_frames():
             if ret:
                 print("[OK] Camera opened successfully with DirectShow")
             else:
-                print("[WARN] Camera opened but cannot read frames with DirectShow")
                 cap.release()
                 cap = None
         else:
-            print("[WARN] Failed to open camera with DirectShow")
             cap = None
     except Exception as e:
-        print(f"[WARN] DirectShow method failed: {e}")
         cap = None
     
     # Method 2: Try without DirectShow
     if cap is None:
-        print("[INFO] Trying camera without DirectShow...")
         try:
             cap = cv2.VideoCapture(0)
             if cap.isOpened():
@@ -288,22 +283,17 @@ def generate_frames():
                 if ret:
                     print("[OK] Camera opened successfully without DirectShow")
                 else:
-                    print("[WARN] Camera opened but cannot read frames without DirectShow")
                     cap.release()
                     cap = None
             else:
-                print("[WARN] Failed to open camera without DirectShow")
                 cap = None
         except Exception as e:
-            print(f"[WARN] Standard method failed: {e}")
             cap = None
     
     # Method 3: Try different camera indices
     if cap is None:
-        print("[INFO] Trying different camera indices...")
         for i in range(4):  # Try camera indices 0, 1, 2, 3
             try:
-                print(f"[INFO] Trying camera index {i}...")
                 test_cap = cv2.VideoCapture(i)
                 if test_cap.isOpened():
                     # Test if we can actually read a frame
@@ -313,24 +303,19 @@ def generate_frames():
                         print(f"[OK] Camera opened successfully with index {i}")
                         break
                     else:
-                        print(f"[WARN] Camera index {i} opened but cannot read frames")
                         test_cap.release()
                 else:
-                    print(f"[WARN] Failed to open camera with index {i}")
                     test_cap.release()
             except Exception as e:
-                print(f"[WARN] Camera index {i} failed: {e}")
                 continue
     
     # Method 4: Try with different backends
     if cap is None:
-        print("[INFO] Trying different camera backends...")
         backends = [cv2.CAP_MSMF, cv2.CAP_V4L2, cv2.CAP_GSTREAMER]
         backend_names = ["MSMF", "V4L2", "GSTREAMER"]
         
         for backend, name in zip(backends, backend_names):
             try:
-                print(f"[INFO] Trying {name} backend...")
                 test_cap = cv2.VideoCapture(0, backend)
                 if test_cap.isOpened():
                     ret, test_frame = test_cap.read()
@@ -347,11 +332,7 @@ def generate_frames():
     
     # If still no camera, create placeholder
     if cap is None or not cap.isOpened():
-        print("[ERROR] Cannot open any camera after trying all methods")
-        print("[ERROR] Please check:")
-        print("  1. Camera is not being used by another application")
-        print("  2. Camera drivers are installed")
-        print("  3. Camera permissions are granted")
+        print("[ERROR] Cannot open any camera")
         
         placeholder_frame = np.zeros((480, 640, 3), dtype=np.uint8)
         while True:
@@ -374,15 +355,6 @@ def generate_frames():
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         cap.set(cv2.CAP_PROP_FPS, 30)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer to minimize latency
-        
-        # Get actual camera properties
-        actual_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-        actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        actual_fps = cap.get(cv2.CAP_PROP_FPS)
-        
-        print(f"[INFO] Camera properties set:")
-        print(f"  Resolution: {actual_width}x{actual_height}")
-        print(f"  FPS: {actual_fps}")
     except Exception as e:
         print(f"[WARN] Could not set camera properties: {e}")
     
@@ -397,10 +369,9 @@ def generate_frames():
             ret, frame = cap.read()
             if not ret:
                 consecutive_failures += 1
-                print(f"[WARN] Failed to read frame (attempt {consecutive_failures}/{max_failures})")
                 
                 if consecutive_failures >= max_failures:
-                    print("[ERROR] Too many consecutive frame read failures, camera may have disconnected")
+                    print("[ERROR] Too many consecutive frame read failures")
                     cap.release()
                     # Try to reinitialize camera
                     time.sleep(2)
@@ -437,9 +408,6 @@ def generate_frames():
             should_adjust, adjustment = brightness_controller.should_adjust_brightness(brightness_level, has_faces)
             
             # Apply brightness adjustment
-            if should_adjust:
-                print(f"[INFO] Adjusting brightness by {adjustment} (current: {brightness_controller.current_brightness})")
-            
             frame = brightness_controller.adjust_brightness(frame, adjustment if should_adjust else None)
             current_brightness_level = brightness_controller.current_brightness
             
@@ -482,14 +450,8 @@ def generate_frames():
                         cv2.putText(frame, name, (left, max(top - 10, 10)),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
             
-            # Add frame info and brightness status
-            cv2.putText(frame, f"Frame: {frame_count}", (10, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            cv2.putText(frame, f"Time: {datetime.now().strftime('%H:%M:%S')}", (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            cv2.putText(frame, f"Brightness: {int(brightness_level)}", (10, 70),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-            cv2.putText(frame, f"Adjustment: {current_brightness_level:+d}", (10, 90),
+            # Add basic frame info
+            cv2.putText(frame, f"Time: {datetime.now().strftime('%H:%M:%S')}", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
             
             # Add brightness status indicator
@@ -513,7 +475,6 @@ def generate_frames():
     # Cleanup
     if cap is not None:
         cap.release()
-        print("[INFO] Camera released")
 
 @app.get("/video")
 def video_feed():

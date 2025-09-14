@@ -8,30 +8,28 @@ function StatusPanel() {
   const [status, setStatus] = useState({});
   // State to hold attendance info from backend
   const [attendance, setAttendance] = useState({});
-  // Add error state for debugging
-  const [error, setError] = useState(null);
   // Add connection state
   const [isConnected, setIsConnected] = useState(false);
+
+  // Backend base URL
+  const BACKEND_URL = "http://127.0.0.1:8000";
 
   // useEffect sets up polling to fetch status and attendance every second
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
         // Fetch current status (detected student, liveness, etc.)
-        const statusRes = await axios.get("/status");
+        const statusRes = await axios.get(`${BACKEND_URL}/status`);
         setStatus(statusRes.data);
 
         // Fetch attendance list
-        const attendanceRes = await axios.get("/attendance");
+        const attendanceRes = await axios.get(`${BACKEND_URL}/attendance`);
         setAttendance(attendanceRes.data);
 
-        // Clear error and mark as connected
-        setError(null);
+        // Mark as connected
         setIsConnected(true);
       } catch (err) {
-        // Log errors if requests fail
-        console.error("API Error:", err);
-        setError(err.message);
+        // Mark as disconnected on error
         setIsConnected(false);
       }
     }, 1000); // Poll every 1 second
@@ -68,9 +66,9 @@ function StatusPanel() {
           {isConnected ? "Connected" : "Disconnected"}
         </div>
 
-        {/* FIXED: Direct link to backend video stream */}
+        {/* Video stream from backend */}
         <img
-          src="http://127.0.0.1:8000/video"
+          src={`${BACKEND_URL}/video`}
           alt="Live Camera"
           style={{
             width: "100%",
@@ -80,17 +78,10 @@ function StatusPanel() {
             boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
             border: "3px solid #4f46e5"
           }}
-          onError={(e) => {
-            console.error("Video stream error:", e);
-            setError("Failed to load video stream");
-          }}
-          onLoad={() => {
-            console.log("Video stream loaded successfully");
-          }}
         />
 
-        {/* Error overlay */}
-        {error && (
+        {/* Error overlay for disconnected state */}
+        {!isConnected && (
           <div style={{
             position: "absolute",
             top: "50%",
@@ -103,8 +94,8 @@ function StatusPanel() {
             textAlign: "center",
             maxWidth: "80%"
           }}>
-            <h3>Connection Error</h3>
-            <p>{error}</p>
+            <h3>Connection Lost</h3>
+            <p>Attempting to reconnect...</p>
             <p style={{ fontSize: "12px", marginTop: "10px" }}>
               Make sure the backend server is running on port 8000
             </p>
@@ -121,20 +112,6 @@ function StatusPanel() {
       }}>
         {/* Title of the system */}
         <h1 style={{ color: "#111827", marginBottom: "25px" }}>Face Attendance System</h1>
-
-        {/* Debug info */}
-        {error && (
-          <div style={{
-            marginBottom: "20px",
-            padding: "15px",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: "10px",
-            color: "#991b1b"
-          }}>
-            <strong>Debug Info:</strong> {error}
-          </div>
-        )}
 
         {/* Current Student Info Panel */}
         <div style={{
@@ -166,6 +143,14 @@ function StatusPanel() {
             </span>
           </p>
           <p><strong>Last Scanned:</strong> {status.last_scanned || "None"}</p>
+          
+          {/* Brightness info */}
+          {status.brightness_level !== undefined && (
+            <p><strong>Brightness Adjustment:</strong> {status.brightness_level}</p>
+          )}
+          {status.auto_brightness_active !== undefined && (
+            <p><strong>Auto Brightness:</strong> {status.auto_brightness_active ? "Active" : "Inactive"}</p>
+          )}
         </div>
 
         {/* Attendance Panel */}
