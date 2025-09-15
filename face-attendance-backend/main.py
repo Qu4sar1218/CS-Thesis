@@ -26,10 +26,13 @@ app.add_middleware(
 # Load known faces
 # -------------------------------
 known_face_files = [
-    ("C:/CS Thesis/Images/Maam A.png", "Adoree Ramos"),
-    ("C:/CS Thesis/Images/Maam Abhie.jpeg", "Abhiekay Lavastida"),
-    ("C:/CS Thesis/Images/Akes.jpeg", "Jhon Webster P. Fortuna"),
-    ("C:/CS Thesis/Images/Urie.jpeg", "John Uriel F. Medina")
+    ("C:/CS Thesis/Images/Denver.jpeg", "John Denver A. Ezperanzate"),
+    ("C:/CS Thesis/Images/JC.jpeg", "JC Jeric M. Rodelas"),
+    ("C:/CS Thesis/Images/Web.jpeg", "Jhon Webster P. Fortuna"),
+    ("C:/CS Thesis/Images/Urie.jpeg", "John Uriel F. Medina"),
+    ("C:/CS Thesis/Images/Maricon.jpeg", "Maricon S. Dela Cruz"),
+    ("C:/CS Thesis/Images/Mark.jpeg", "John Mark S. Manangkil"),
+    ("C:/CS Thesis/Images/Dilean.jpeg", "Dilean James B. Vito"),
 ]
 
 known_face_encodings = []
@@ -53,14 +56,20 @@ for file, name in known_face_files:
 # Student info
 # -------------------------------
 student_info = {
-    "Adoree Ramos": {"course": "BSIT", "year": "3rd Year", "section": "A",
+    "JC Jeric M. Rodelas": {"course": "BSIT", "year": "3rd Year", "section": "A",
                      "schedule": ["8:00 - Math", "10:00 - Programming", "1:00 - Networks"]},
-    "Abhiekay Lavastida": {"course": "BSCS", "year": "2nd Year", "section": "B",
+    "John Denver A. Ezperanzate": {"course": "BSCS", "year": "2nd Year", "section": "B",
                            "schedule": ["9:00 - DB Systems", "11:00 - Web Dev", "2:00 - AI Basics"]},
     "Jhon Webster P. Fortuna": {"course": "BSIS", "year": "4th Year", "section": "C",
                                 "schedule": ["7:30 - Thesis", "10:30 - Capstone", "3:00 - Cloud Computing"]},
     "John Uriel F. Medina": {"course": "BSPsych", "year": "1st Year", "section": "D",
-                             "schedule": ["7:30 - IDk", "10:30 - Idk", "3:00 - Ewan IDK"]}
+                             "schedule": ["7:30 - IDk", "10:30 - Idk", "3:00 - Ewan IDK"]},
+    "Maricon S. Dela Cruz": {"course": "BSBA", "year": "2st Year", "section": "A",
+                             "schedule": ["7:30 - Arts", "10:30 - English", "3:00 - Science"]},
+    "John Mark S. Manangkil": {"course": "BSAIS", "year": "3st Year", "section": "D",
+                             "schedule": ["7:30 - History", "10:30 - Filipino", "3:00 - Physics"]},
+    "Dilean James B. Vito": {"course": "BSEntrep", "year": "4st Year", "section": "D",
+                             "schedule": ["7:30 - Business Math", "10:30 - Statistics&Probability", "3:00 - Comnputer Apps"]},
     
 }
 
