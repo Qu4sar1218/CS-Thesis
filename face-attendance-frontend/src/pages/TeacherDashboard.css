@@ -1,0 +1,90 @@
+.teacher-dashboard { 
+    padding: 20px; 
+    background: linear-gradient(180deg, #ffffff 0%, #f7f7ff 100%); 
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.teacher-dashboard h1 { 
+    color: #0f172a;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.teacher-dashboard p {
+    color: #64748b;
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.teacher-btns { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px;
+    width: 100%;
+    max-width: 280px;
+}
+
+/* Unified professional button style */
+.teacher-btn {
+    --btn-size: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 24px;
+    height: var(--btn-size);
+    width: 100%;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    transition: transform 140ms ease, box-shadow 180ms ease, background-color 140ms ease;
+    box-shadow: 0 4px 12px rgba(2, 6, 23, 0.08);
+}
+
+.teacher-btn { 
+    background: linear-gradient(180deg, #059669 0%, #059669 100%); 
+    color: #fff;
+}
+
+.teacher-btn.secondary { 
+    background: linear-gradient(180deg, #bbf7d0 0%, #bbf7d0 100%); 
+    color: #065f46;
+}
+
+.teacher-btn:focus { 
+    outline: 3px solid rgba(5, 150, 105, 0.14); 
+    outline-offset: 2px;
+}
+
+.teacher-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 10px 26px rgba(2, 6, 23, 0.10);
+}
+
+.teacher-btn:active { 
+    transform: translateY(0); 
+    box-shadow: 0 5px 12px rgba(2, 6, 23, 0.08);
+}
+
+.teacher-logout { 
+    margin-top: 24px; 
+    background: transparent; 
+    border: 1px solid #e5e7eb; 
+    color: #64748b; 
+    padding: 10px 20px; 
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 140ms ease;
+}
+
+.teacher-logout:hover {
+    border-color: #cbd5e1;
+    color: #475569;
+}

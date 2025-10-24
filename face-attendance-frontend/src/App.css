@@ -1,38 +1,159 @@
-.App {
-  text-align: center;
+/* Global layout helpers for App.js */
+
+.app-fullscreen {
+  position: relative;
+  height: 100vh;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.app-close-btn {
+  position: absolute;
+  z-index: 1000;
+  right: 20px;
+  top: 20px;
+  padding: 10px 20px;
+  background-color: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
+.app-close-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,0.2); }
+.app-close-btn:active { transform: translateY(0); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
+/* Attendance Mode (the page that appears after clicking Take Attendance) */
 
-.App-header {
-  background-color: #282c34;
+.attendance-container {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  background: radial-gradient(1200px 600px at 20% -10%, #dbeafe 20%, rgba(219,234,254,0) 60%),
+              radial-gradient(900px 500px at 120% 10%, #f5d0fe 20%, rgba(245,208,254,0) 60%),
+              linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  padding: 32px 20px;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-.App-link {
-  color: #61dafb;
+.attendance-card {
+  width: 100%;
+  max-width: 920px;
+  background: #ffffffee;
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.12);
+  overflow: hidden;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.attendance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 26px;
+  background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%);
+  color: #fff;
 }
+
+.attendance-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.attendance-body {
+  padding: 22px 26px 26px 26px;
+}
+
+.mode-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 12px 16px;
+  transition: transform 120ms ease, box-shadow 180ms ease, opacity 160ms ease;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+
+.btn-primary {
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 90%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(34, 197, 94, 0.22);
+}
+.btn-primary:hover { box-shadow: 0 10px 26px rgba(34, 197, 94, 0.32); }
+
+.btn-secondary {
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.06);
+}
+.btn-secondary:hover { box-shadow: 0 10px 24px rgba(2, 6, 23, 0.10); }
+
+.btn-danger {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 90%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.22);
+}
+
+.section-heading {
+  margin: 0 0 12px 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.section-subtle { color: #334155; font-size: 14px; margin-top: 4px; }
+
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.subject-card {
+  text-align: left;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 18px rgba(2, 6, 23, 0.06);
+}
+.subject-card:hover { box-shadow: 0 14px 24px rgba(2, 6, 23, 0.12); }
+
+.subject-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subject-meta {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.subject-today {
+  background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px #38bdf8 inset, 0 14px 24px rgba(56, 189, 248, 0.18);
+}
+.subject-today .subject-name { color: #075985; }
+
+.toolbar {
+  margin-top: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+/* Utility */
+.mt-16 { margin-top: 16px; }

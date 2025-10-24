@@ -1,0 +1,92 @@
+.admin-dashboard {
+    padding: 20px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-dashboard h1 {
+    color: #0f172a; 
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.admin-dashboard p { 
+    color: #64748b; 
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.admin-btns { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px;
+    width: 100%;
+    max-width: 280px;
+}
+
+/* Unified professional button style */
+.admin-btn {
+    --btn-size: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 24px;
+    height: var(--btn-size);
+    width: 100%;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+    transition: transform 140ms ease, box-shadow 180ms ease, background-color 140ms ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.admin-btn.primary {
+    background: linear-gradient(180deg, #4338ca 0%, #6d28d9 100%);
+    color: #fff;
+}
+
+.admin-btn.secondary {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.admin-btn:focus {
+    outline: 3px solid rgba(99, 102, 241, 0.16);
+    outline-offset: 2px;
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.10);
+}
+
+.admin-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, 0.08);
+}
+
+.admin-logout {
+    margin-top: 24px;
+    background: transparent;
+    border: 1px solid #e5e7eb;
+    color: #64748b;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 140ms ease;
+}
+
+.admin-logout:hover {
+    border-color: #cbd5e1;
+    color: #475569;
+}
