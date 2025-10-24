@@ -11,10 +11,10 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting 
   };
 
   return (
-    <div className="teacher-dashboard">
+       <main className="teacher-dashboard">
       <h1>Teacher Dashboard</h1>
       <p>Welcome, Teacher. Take attendance, review students, and manage classes.</p>
-      <div className="teacher-btns">
+         <nav className="teacher-btns" aria-label="teacher actions">
         <button className="teacher-btn" onClick={handleTakeAttendance} disabled={typeof onTakeAttendance !== 'function' || starting}>
           {typeof onTakeAttendance !== 'function' ? 'Take Attendance (unavailable)' : (starting ? 'Starting…' : 'Take Attendance')}
         </button>
@@ -22,8 +22,8 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting 
         <button className="teacher-btn secondary">Attendance</button>
         <button className="teacher-btn secondary">Assignments</button>
         <button className="teacher-btn secondary">Messages</button>
-      </div>
+         </nav>
       <button className="teacher-logout" onClick={onLogout} style={{ marginTop: 12 }}>Logout</button>
-    </div>
+       </main>
   );
 }

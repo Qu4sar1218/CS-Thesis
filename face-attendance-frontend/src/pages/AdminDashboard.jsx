@@ -12,19 +12,19 @@ export default function AdminDashboard({ onLogout, onTakeAttendance, starting })
   };
 
   return (
-    <div className="admin-dashboard">
+    <main className="admin-dashboard">
       <h1>Admin Dashboard</h1>
       <p>Welcome, Admin. You can manage users and system settings here.</p>
-      <div className="admin-btns">
-        <button className="admin-btn primary" onClick={handleTakeAttendance} disabled={typeof onTakeAttendance !== 'function' || starting}>
-          {typeof onTakeAttendance !== 'function' ? 'Take Attendance (unavailable)' : (starting ? 'Starting…' : 'Take Attendance')}
-        </button>
-        <button className="admin-btn secondary">Users</button>
-        <button className="admin-btn secondary">Settings</button>
-        <button className="admin-btn secondary">Reports</button>
-        <button className="admin-btn secondary">Logs</button>
-      </div>
+        <nav className="admin-btns" aria-label="admin actions">
+          <button className="admin-btn primary" onClick={handleTakeAttendance} disabled={typeof onTakeAttendance !== 'function' || starting}>
+            {typeof onTakeAttendance !== 'function' ? 'Take Attendance (unavailable)' : (starting ? 'Starting…' : 'Take Attendance')}
+          </button>
+          <button className="admin-btn secondary">Users</button>
+          <button className="admin-btn secondary">Settings</button>
+          <button className="admin-btn secondary">Reports</button>
+          <button className="admin-btn secondary">Logs</button>
+        </nav>
       <button className="admin-logout" onClick={onLogout}>Logout</button>
-    </div>
+      </main>
   );
 }

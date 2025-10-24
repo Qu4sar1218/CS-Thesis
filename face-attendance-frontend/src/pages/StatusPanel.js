@@ -277,10 +277,10 @@ function StatusPanel({ mode, subject }) {
   }, [useSnapshotFallback, BACKEND_URL]);
 
   return (
-    <div style={{ display: "flex", height: "100vh", fontFamily: "Inter, sans-serif" }}>
+    <main style={{ display: "flex", height: "100vh", fontFamily: "Inter, sans-serif" }}>
 
       {/* Left Panel: Live Video Feed from backend camera */}
-      <div style={{
+      <aside style={{
         flex: 1,
         backgroundColor: "#1f2937",
         display: "flex",
@@ -290,7 +290,7 @@ function StatusPanel({ mode, subject }) {
         position: "relative"
       }}>
         {/* Show connection status */}
-        <div style={{
+        <span role="status" style={{
           position: "absolute",
           top: "10px",
           left: "10px",
@@ -302,10 +302,10 @@ function StatusPanel({ mode, subject }) {
           zIndex: 1000
         }}>
           {streamConnected ? "Connected" : "Disconnected"}
-        </div>
+        </span>
 
         {/* System status */}
-        <div style={{
+        <span role="status" style={{
           position: "absolute",
           top: "10px",
           right: "10px",
@@ -317,11 +317,11 @@ function StatusPanel({ mode, subject }) {
           zIndex: 1000
         }}>
           {isRecognitionActive || status.recognition_running ? "Recognition Active" : "Recognition Inactive"}
-        </div>
+        </span>
 
         {/* Loading indicator */}
         {isStreamLoading && (
-          <div style={{
+          <aside role="status" aria-live="polite" style={{
             position: "absolute",
             top: "50%",
             left: "50%",
@@ -331,7 +331,7 @@ function StatusPanel({ mode, subject }) {
             zIndex: 100
           }}>
             Loading camera feed...
-          </div>
+          </aside>
         )}
 
         {/* Video stream from backend */}
@@ -354,9 +354,9 @@ function StatusPanel({ mode, subject }) {
           onLoad={handleImageLoad}
           onError={handleImageError}
           />
-        ) : (
+          ) : (
           // Render a placeholder when no image source is available
-          <div style={{
+          <figure style={{
             width: "100%",
             height: "100%",
             display: "flex",
@@ -365,14 +365,15 @@ function StatusPanel({ mode, subject }) {
             color: "white",
             fontSize: "18px",
             pointerEvents: "none",
-          }}> 
-            {isStreamLoading ? 'Preparing camera...' : 'No camera feed'}
-          </div>
+            margin: 0
+          }}>
+            <figcaption>{isStreamLoading ? 'Preparing camera...' : 'No camera feed'}</figcaption>
+          </figure>
         )}
 
         {/* Error overlay for disconnected state */}
         {!streamConnected && (
-          <div style={{
+          <aside role="alert" style={{
             position: "absolute",
             top: "50%",
             left: "50%",
@@ -390,12 +391,12 @@ function StatusPanel({ mode, subject }) {
             <p style={{ fontSize: "12px", marginTop: "10px" }}>
               Make sure the backend server is running on port 8000
             </p>
-          </div>
+          </aside>
         )}
-      </div>
+      </aside>
 
       {/* Right Panel: Info and Attendance */}
-      <div style={{
+      <section style={{
         flex: 1,
         padding: "40px",
         backgroundColor: "#f3f4f6",
@@ -403,37 +404,37 @@ function StatusPanel({ mode, subject }) {
       }}>
         {/* Title of the system */}
         <h1 style={{ color: "#111827", marginBottom: "8px" }}>Face Attendance System</h1>
-        <div style={{ marginBottom: "20px", color: "#374151" }}>
+        <header style={{ marginBottom: "20px", color: "#374151" }}>
           {mode === 'class' && subject ? (
-            <div><strong>Mode:</strong> Class • <strong>Subject:</strong> {subject.name}</div>
+            <p><strong>Mode:</strong> Class • <strong>Subject:</strong> {subject.name}</p>
           ) : mode === 'events' ? (
-            <div><strong>Mode:</strong> Events</div>
+            <p><strong>Mode:</strong> Events</p>
           ) : (
-            <div><strong>Mode:</strong> Default</div>
+            <p><strong>Mode:</strong> Default</p>
           )}
-        </div>
+        </header>
 
         {/* Current Student Info Panel */}
-        <div style={{
+        <section style={{
           marginBottom: "30px",
           padding: "25px",
           borderRadius: "20px",
           background: "linear-gradient(135deg, #e0f2fe, #bae6fd)",
           boxShadow: "0 6px 20px rgba(0,0,0,0.1)"
-        }}>
+        }} aria-labelledby="system-status-heading">
           <h2 style={{ marginBottom: "15px", color: "#1e3a8a" }}>System Status</h2>
           <p><strong>Recognition:</strong> {status.recognition_running ? "Active" : "Inactive"}</p>
           <p><strong>Camera:</strong> {status.camera_active ? "Connected" : "Disconnected"}</p>
           <p><strong>Status:</strong> {status.status || "Unknown"}</p>
           
           {/* You can add face detection results here when available */}
-          <div style={{ marginTop: "15px", padding: "10px", backgroundColor: "rgba(255,255,255,0.5)", borderRadius: "10px" }}>
+          <section style={{ marginTop: "15px", padding: "10px", backgroundColor: "rgba(255,255,255,0.5)", borderRadius: "10px" }}>
             <p style={{ fontStyle: "italic", color: "#666" }}>
               Face detection results will appear here when students are recognized.
             </p>
-          </div>
+          </section>
           {/* Recognition control button */}
-          <div style={{ marginTop: 12 }}>
+          <footer style={{ marginTop: 12 }}>
             {isRecognitionActive || status.recognition_running ? (
               <button onClick={handleStopRecognition} style={{ padding: '8px 14px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
                 Stop Recognition
@@ -443,19 +444,19 @@ function StatusPanel({ mode, subject }) {
                 {isStreamLoading ? 'Starting…' : 'Start Recognition'}
               </button>
             )}
-          </div>
-        </div>
+          </footer>
+        </section>
 
         {/* Attendance Panel - FIXED: Use correct attendance data structure */}
-        <div style={{
+        <section style={{
           padding: "25px",
           borderRadius: "20px",
           background: "linear-gradient(135deg, #fef3c7, #fde68a)",
           boxShadow: "0 6px 20px rgba(0,0,0,0.1)"
-        }}>
+        }} aria-labelledby="attendance-heading">
           <h2 style={{ marginBottom: "15px", color: "#78350f" }}>Attendance</h2>
           <p><strong>Total Present:</strong> {attendance.length || 0}</p>
-          <div style={{ maxHeight: "300px", overflowY: "auto", paddingLeft: "0" }}>
+          <section style={{ maxHeight: "300px", overflowY: "auto", paddingLeft: "0" }}>
             {attendance.length > 0 ? (
               <ul style={{ paddingLeft: "20px" }}>
                 {attendance.map((record, index) => (
@@ -469,10 +470,10 @@ function StatusPanel({ mode, subject }) {
             ) : (
               <p style={{ fontStyle: "italic", color: "#666" }}>No attendance records yet.</p>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
+          </section>
+        </section>
+      </section>
+    </main>
   );
 }
 

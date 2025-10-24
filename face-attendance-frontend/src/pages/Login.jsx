@@ -10,7 +10,7 @@ function Login({ onLogin }) {
     e.preventDefault();
     // Sample hard-coded accounts (for demo). In production, replace with backend auth.
     const accounts = {
-      "admin@example.com": "123456789",
+      "admin@example.com": "adminpass8",
       "teacher@example.com": "teachpass8",
       "student@example.com": "studpass8",
     };
@@ -35,11 +35,11 @@ function Login({ onLogin }) {
   };
 
   return (
-    <div className="login-container">
+    <main className="login-container">
       <h2 className="login-title">Welcome to Persona </h2>
       <form onSubmit={handleSubmit} className="login-form">
         {/* Input row with left label for the email field */}
-        <div className="input-row">
+        <section className="input-row">
           <label className="input-label">Login</label>
           <input
             type="email"
@@ -48,7 +48,7 @@ function Login({ onLogin }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-        </div>
+        </section>
         <input
           type="password"
           placeholder="Password"
@@ -60,7 +60,7 @@ function Login({ onLogin }) {
           Login
         </button>
       </form>
-    </div>
+    </main>
   );
 }
 
