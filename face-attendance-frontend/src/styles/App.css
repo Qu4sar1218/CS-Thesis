@@ -1,0 +1,295 @@
+@import './design-tokens.css';
+
+/* Global layout helpers for App.js */
+
+.app-fullscreen {
+  position: relative;
+  height: 100vh;
+}
+
+.app-close-btn {
+  position: absolute;
+  z-index: 1000;
+  right: 20px;
+  top: 20px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.app-close-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.app-close-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Attendance Mode (the page that appears after clicking Take Attendance) */
+
+.attendance-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(1200px 600px at 20% -10%, #d1fae5 20%, rgba(209, 250, 229, 0) 60%),
+              radial-gradient(900px 500px at 120% 10%, #a7f3d0 20%, rgba(167, 243, 208, 0) 60%),
+              linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  padding: 32px 20px;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.attendance-card {
+  width: 100%;
+  max-width: 920px;
+  background: #ffffff;
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  border: 3px solid #10b981;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2);
+  overflow: hidden;
+}
+
+.attendance-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+}
+
+.attendance-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.attendance-body {
+  padding: 26px 28px 30px 28px;
+}
+
+.mode-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 14px 20px;
+  font-size: 15px;
+  transition: transform 120ms ease, box-shadow 180ms ease, opacity 160ms ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: #065f46;
+  border: 2px solid #10b981;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+}
+
+.btn-secondary:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+  background: #f0fdf4;
+  border-color: #059669;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.section-heading {
+  margin: 0 0 14px 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #065f46;
+}
+
+.section-subtle {
+  color: #047857;
+  font-size: 15px;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.subject-card {
+  text-align: left;
+  background: #fff;
+  border: 2px solid #d1fae5;
+  border-radius: 16px;
+  padding: 18px 20px;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.subject-card:hover {
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
+  border-color: #10b981;
+}
+
+.subject-name {
+  font-weight: 800;
+  color: #065f46;
+  font-size: 17px;
+}
+
+.subject-meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #047857;
+  font-weight: 500;
+}
+
+.subject-today {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+.subject-today .subject-name {
+  color: #065f46;
+}
+
+.subject-today .subject-meta {
+  color: #047857;
+}
+
+.toolbar {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Utility */
+.mt-16 {
+  margin-top: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .attendance-card {
+    border-radius: 16px;
+  }
+
+  .attendance-header {
+    padding: 20px 22px;
+  }
+
+  .attendance-title {
+    font-size: 20px;
+  }
+
+  .attendance-body {
+    padding: 22px 22px 26px 22px;
+  }
+
+  .section-heading {
+    font-size: 22px;
+  }
+
+  .subjects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .attendance-container {
+    padding: 20px 15px;
+  }
+
+  .attendance-header {
+    padding: 18px 20px;
+  }
+
+  .attendance-title {
+    font-size: 18px;
+  }
+
+  .attendance-body {
+    padding: 20px;
+  }
+
+  .section-heading {
+    font-size: 20px;
+  }
+
+  .btn {
+    padding: 12px 18px;
+    font-size: 14px;
+  }
+
+  .mode-actions {
+    flex-direction: column;
+  }
+
+  .mode-actions .btn {
+    width: 100%;
+  }
+}
+:root {
+  /* 🌄 Light Mode Background Gradient */
+  --app-background-gradient: radial-gradient(1200px 600px at 20% -10%, #d1fae5 20%, rgba(250, 212, 209, 0) 60%),
+                              radial-gradient(900px 500px at 120% 10%, #a7f3d0 20%, rgba(88, 4, 222, 0) 60%),
+                              linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+
+  /* 🌙 Dark Mode Background Gradient */
+  --app-background-gradient-dark: radial-gradient(1200px 600px at 20% -10%, #064e3b 20%, rgba(6, 78, 59, 0) 60%),
+                                  radial-gradient(900px 500px at 120% 10%, #065f46 20%, rgba(6, 95, 70, 0) 60%),
+                                  linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+@media (prefers-color-scheme: dark) {
+  .my-page-container {
+    background: var(--app-background-gradient-dark);
+  }
+}

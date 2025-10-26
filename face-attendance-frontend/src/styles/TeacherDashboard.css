@@ -1,0 +1,166 @@
+@import './design-tokens.css';
+
+.teacher-dashboard {
+    padding: 40px 20px;
+    background: var(--dashboard-bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+.teacher-dashboard h1 {
+    color: #065f46;
+    font-size: 42px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+}
+
+.teacher-dashboard p {
+    color: #047857;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 40px;
+    font-weight: 500;
+}
+
+.teacher-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    max-width: 380px;
+}
+
+/* Unified professional button style */
+.teacher-btn {
+    --btn-size: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 28px;
+    height: var(--btn-size);
+    width: 100%;
+    border-radius: 14px;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.3px;
+    transition: transform 140ms ease, box-shadow 180ms ease, background-color 140ms ease;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
+}
+
+.teacher-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.teacher-btn:hover::before {
+    left: 100%;
+}
+
+.teacher-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+}
+
+.teacher-btn.secondary {
+    background: white;
+    color: #065f46;
+    border: 2px solid #10b981;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12);
+}
+
+.teacher-btn:focus {
+    outline: 3px solid rgba(16, 185, 129, 0.3);
+    outline-offset: 2px;
+}
+
+.teacher-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+.teacher-btn:not(.secondary):hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.teacher-btn.secondary:hover {
+    background: #f0fdf4;
+    border-color: #059669;
+}
+
+.teacher-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.teacher-logout {
+    margin-top: 32px;
+    background: transparent;
+    border: 2px solid #d1d5db;
+    color: #6b7280;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+}
+
+.teacher-logout:hover {
+    border-color: #10b981;
+    color: #059669;
+    background: rgba(16, 185, 129, 0.05);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .teacher-dashboard h1 {
+        font-size: 36px;
+    }
+
+    .teacher-dashboard p {
+        font-size: 15px;
+    }
+
+    .teacher-btns {
+        max-width: 100%;
+    }
+
+    .teacher-btn {
+        --btn-size: 56px;
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .teacher-dashboard {
+        padding: 30px 15px;
+    }
+
+    .teacher-dashboard h1 {
+        font-size: 30px;
+    }
+
+    .teacher-btn {
+        --btn-size: 52px;
+        font-size: 14px;
+        padding: 0 20px;
+    }
+}

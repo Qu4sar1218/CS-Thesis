@@ -1,0 +1,167 @@
+@import './design-tokens.css';
+
+.register-student {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  min-height: 100vh;
+}
+
+.register-student h1 {
+  color: #065f46;
+  font-size: 36px;
+  margin-bottom: 30px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 550px;
+  margin: 0 auto;
+  background: white;
+  padding: 35px;
+  border-radius: 20px;
+  border: 3px solid #10b981;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15);
+}
+
+.register-form label {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-weight: 600;
+  color: #047857;
+  font-size: 14px;
+}
+
+.register-form input {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid #a7f3d0;
+  background: #f9fafb;
+  color: #1f2937;
+  font-size: 15px;
+  margin-top: 8px;
+  transition: all 0.3s ease;
+}
+
+.register-form input::placeholder {
+  color: #9ca3af;
+}
+
+.register-form input:focus {
+  outline: none;
+  border-color: #10b981;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.register-form input[type="date"] {
+  color-scheme: light;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.primary {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  flex: 1;
+}
+
+.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondary {
+  background: white;
+  color: #047857;
+  border: 2px solid #10b981;
+  padding: 14px 28px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.secondary:hover {
+  background: #f0fdf4;
+  border-color: #059669;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .register-student {
+    padding: 30px 15px;
+  }
+
+  .register-student h1 {
+    font-size: 30px;
+  }
+
+  .register-form {
+    padding: 25px;
+    max-width: 100%;
+  }
+
+  .form-buttons {
+    flex-direction: column;
+  }
+
+  .primary,
+  .secondary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-student h1 {
+    font-size: 26px;
+  }
+
+  .register-form {
+    padding: 20px;
+  }
+
+  .register-form label {
+    font-size: 13px;
+  }
+
+  .register-form input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .primary,
+  .secondary {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}

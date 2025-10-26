@@ -1,5 +1,6 @@
 import React from "react";
-import "./StudentDashboard.css";
+import '../styles/StudentDashboard.css';
+
 
 export default function StudentDashboard({ onLogout, onFaceRecognition }) {
   return (

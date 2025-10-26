@@ -1,5 +1,6 @@
 import React from "react";
-import "./TeacherDashboard.css";
+import '../styles/TeacherDashboard.css';
+
 
 export default function TeacherDashboard({ onLogout, onTakeAttendance, starting }) {
   const handleTakeAttendance = async () => {

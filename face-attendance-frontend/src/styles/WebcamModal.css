@@ -1,0 +1,303 @@
+@import './design-tokens.css';
+
+/* Webcam Modal Overlay */
+.webcam-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Container */
+.webcam-modal {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 3px solid #10b981;
+  padding: 35px;
+  border-radius: 20px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2), 0 4px 20px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.webcam-modal h2 {
+  margin-top: 0;
+  color: #059669;
+  font-size: 28px;
+  margin-bottom: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.student-id-display {
+  margin-bottom: 20px;
+  color: #047857;
+  font-size: 15px;
+  text-align: center;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  padding: 10px;
+  border-radius: 8px;
+  border: 2px solid #10b981;
+}
+
+.student-id-display strong {
+  color: #065f46;
+  font-weight: 700;
+}
+
+/* Video Container */
+.video-container {
+  position: relative;
+  margin-bottom: 20px;
+  border-radius: 15px;
+  overflow: hidden;
+  background-color: #1f2937;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #10b981;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+.camera-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #10b981;
+  font-size: 18px;
+  z-index: 10;
+  text-align: center;
+  font-weight: 600;
+}
+
+.webcam-video {
+  width: 100%;
+  max-height: 400px;
+  display: block;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.hidden-canvas {
+  display: none;
+}
+
+/* Status Text */
+.training-status {
+  margin-bottom: 20px;
+  color: #065f46;
+  font-size: 15px;
+  min-height: 20px;
+  padding: 12px;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border: 2px solid #6ee7b7;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.captured-count {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #047857;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* Modal Buttons */
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.modal-buttons button {
+  padding: 14px 26px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex: 1;
+  min-width: 150px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-capture {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.btn-capture:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: white;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #10b981, #059669);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 211, 153, 0.4);
+}
+
+.btn-cancel {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+}
+
+.modal-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Additional Styles for Registration Form */
+.train-face-btn {
+  margin-top: 20px;
+  width: 100%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease;
+  border-radius: 10px;
+}
+
+.train-face-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 6px 25px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
+.train-face-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.message-text {
+  margin-top: 20px;
+  font-weight: 600;
+  padding: 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  text-align: center;
+  border: 2px solid #10b981;
+  box-shadow: 0 2px 15px rgba(16, 185, 129, 0.2);
+}
+
+/* Custom scrollbar for modal */
+.webcam-modal::-webkit-scrollbar {
+  width: 10px;
+}
+
+.webcam-modal::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+.webcam-modal::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 10px;
+}
+
+.webcam-modal::-webkit-scrollbar-thumb:hover {
+  background: #059669;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .webcam-modal {
+    padding: 25px;
+    width: 95%;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+  }
+
+  .modal-buttons button {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .webcam-video {
+    max-height: 300px;
+  }
+
+  .webcam-modal h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .webcam-modal {
+    padding: 20px;
+  }
+
+  .webcam-modal h2 {
+    font-size: 22px;
+  }
+
+  .student-id-display {
+    font-size: 13px;
+  }
+
+  .training-status {
+    font-size: 13px;
+  }
+
+  .modal-buttons button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+}

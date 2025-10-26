@@ -1,0 +1,132 @@
+/* Shared design tokens and global component styles
+   Provides colors, typography, and common controls styling so all pages
+   visually align with the Login design.
+*/
+:root {
+  /* Emerald palette (from Login.css) */
+  --emerald-50: #f0fdf4;
+  --emerald-100: #dcfce7;
+  --emerald-200: #d1fae5;
+  --emerald-300: #a7f3d0;
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-700: #374151;
+  --gray-900: #065f46;
+
+  --white: #ffffff;
+
+  --shadow-card: 0 10px 40px rgba(16, 185, 129, 0.12);
+  --shadow-button: 0 6px 22px rgba(6, 179, 106, 0.12);
+  --shadow-focus: 0 6px 18px rgba(16,185,129,0.08);
+}
+
+/* Base typography and smoothing */
+html, body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--gray-900);
+}
+
+/* Buttons: used by many pages; align visual style with Login */
+button,
+.btn,
+.admin-btn,
+.submit-button {
+  appearance: none;
+  -webkit-appearance: none;
+  background: linear-gradient(135deg, var(--emerald-500) 0%, var(--emerald-600) 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-button);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+button:hover:not(:disabled),
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+/* Primary/secondary helpers */
+.btn-primary { background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600)); }
+.btn-secondary { background: #f1f5f9; color: var(--gray-900); box-shadow: 0 4px 12px rgba(2,6,23,0.06); }
+
+/* Inputs: unify look across pages */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select,
+textarea,
+.input-field {
+  width: 100%;
+  border: 1.5px solid var(--emerald-200);
+  border-radius: 10px;
+  background: var(--gray-50);
+  font-size: 15px;
+  color: var(--gray-900);
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+input:focus, textarea:focus, select:focus, .input-field:focus {
+  outline: none;
+  border-color: var(--emerald-500);
+  box-shadow: var(--shadow-focus);
+  transform: translateY(-1px);
+}
+
+/* Cards: lightweight helper for page panels */
+.card,
+.panel,
+.login-card,
+.status-panel {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+}
+
+/* Footers/links that act as buttons */
+.footer-link, a.footer-link, button.footer-link {
+  color: var(--gray-500);
+  text-decoration: none;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* Accessibility: focus states */
+:focus {
+  outline: 3px solid rgba(16,185,129,0.18);
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+/* Dashboard background */
+:root {
+  --dashboard-bg: radial-gradient(1200px 600px at 20% -10%, #064e3b 20%, rgba(6, 78, 59, 0) 60%),
+                                  radial-gradient(900px 500px at 120% 10%, #065f46 20%, rgba(6, 95, 70, 0) 60%),
+                                  linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                     
+}
