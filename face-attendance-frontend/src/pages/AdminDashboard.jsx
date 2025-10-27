@@ -29,14 +29,19 @@ export default function AdminDashboard({ onLogout, onTakeAttendance, starting, o
 
         {/* opens registration form with face recognition training */}
         <button
-          className="admin-btn secondary"
+          className="admin-btn primary"
           onClick={() => onNavigate && onNavigate("studentRegis")}
         >
           Register Student
         </button>
 
         {/* opens registration form */}
-        <button className="admin-btn secondary">Register Teacher</button>
+        <button 
+        className="admin-btn secondary"  
+        onClick={() => onNavigate && onNavigate("teachregis")}
+        >
+          Register Teacher
+        </button>
 
         {/* with edit/delete of students */}
         <button className="admin-btn secondary">Student List</button>

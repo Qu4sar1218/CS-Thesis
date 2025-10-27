@@ -3,7 +3,7 @@
 .register-student {
   text-align: center;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  background: var(--dashboard-bg);
   min-height: 100vh;
 }
 

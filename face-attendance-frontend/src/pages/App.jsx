@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import StatusPanel from "./pages/StatusPanel.js";
-import Login from "./pages/Login.jsx";
-import AdminDashboard from "./pages/AdminDashboard.jsx";
-import TeacherDashboard from "./pages/TeacherDashboard.jsx";
-import StudentDashboard from "./pages/StudentDashboard.jsx";
-import "./styles/App.css";
-import StudentRegis from "./pages/studentregis.jsx";
+import StatusPanel from "./StatusPanel.js";
+import Login from "./Login.jsx";
+import AdminDashboard from "./AdminDashboard.jsx";
+import TeacherDashboard from "./TeacherDashboard.jsx";
+import StudentDashboard from "./StudentDashboard.jsx";
+import "../styles/App.css";
+import StudentRegis from "./studentregis.jsx";
+import RegisterTeacher from "./teachregis.jsx";
 
 
 function App() {
@@ -215,6 +216,9 @@ function App() {
   if (role === "admin") {
   if (currentPage === "studentRegis") {
     return <StudentRegis onBack={() => setCurrentPage("dashboard")} />;
+  }
+  if (currentPage === "teachregis") {
+    return <RegisterTeacher onBack={() => setCurrentPage("dashboard")} />;
   }
 
   if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;

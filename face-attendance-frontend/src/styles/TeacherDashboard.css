@@ -12,7 +12,7 @@
 }
 
 .teacher-dashboard h1 {
-    color: #065f46;
+    color: #ffffff;
     font-size: 42px;
     font-weight: 800;
     text-align: center;
@@ -21,7 +21,7 @@
 }
 
 .teacher-dashboard p {
-    color: #047857;
+    color: #ffffff;
     font-size: 16px;
     text-align: center;
     margin-bottom: 40px;
@@ -112,7 +112,7 @@
 
 .teacher-logout {
     margin-top: 32px;
-    background: transparent;
+    background: white;
     border: 2px solid #d1d5db;
     color: #6b7280;
     padding: 12px 24px;

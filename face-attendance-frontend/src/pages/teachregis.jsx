@@ -1,4 +1,3 @@
-// src/pages/RegisterTeacher.jsx
 import React from "react";
 import '../styles/RegisterTeacher.css';
 import { useNavigate } from "react-router-dom";

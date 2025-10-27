@@ -66,7 +66,7 @@ for folder in redundant_folders:
             logger.warning(f"Could not remove {folder}: {e}")
 
 # Recognition parameters (tuned for better accuracy)
-FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "0.5"))  # Lower = more strict, better accuracy
+FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "0.6"))  # Higher = more permissive (0.6 is a good default)
 FACE_DETECTION_CONFIDENCE = float(os.getenv("FACE_DETECTION_CONFIDENCE", "0.5"))
 USE_GPU = os.getenv("USE_GPU", "1") in ("1", "true", "True")  # Enable GPU if available
 MAX_ATTENDANCE = 5000
@@ -137,6 +137,7 @@ active_camera = None
 attendance_data, attendance_lock = [], threading.Lock()
 known_face_encodings, known_face_names = [], []
 last_attendance_time = {}  # Track last attendance time per person
+encodings_lock = threading.Lock()
 
 # -------------------------
 # Known face setup
@@ -247,28 +248,26 @@ def load_all_trained_faces():
             if f.lower().endswith(('.jpg', '.jpeg', '.png'))
         ))
         
-    # Load known face files
+    # Build lists of files to load/encode
+    tasks = []  # list of (path, name) images to encode
+
+    # Explicit known files
     for path, name in known_face_files:
         if os.path.exists(path):
-            encode_image(path, name)
+            tasks.append((path, name))
         else:
             logger.warning(f"File not found: {path} (this is normal if the student's image hasn't been added yet)")
 
-    # Process any additional images found in the images folder (not in known_face_files)
+    # Additional images discovered in the images folder
     for fname in additional_images:
         full = os.path.join(FACE_DATA_DIR, fname)
-        try:
-            derived_name = os.path.splitext(fname)[0].replace('_', ' ').strip()
-            logger.info(f"Processing additional image {full} as '{derived_name}'")
-            encode_image(full, derived_name)
-        except Exception as e:
-            logger.error(f"Failed to process additional image {full}: {e}")
+        derived_name = os.path.splitext(fname)[0].replace('_', ' ').strip()
+        logger.info(f"Queuing additional image {full} as '{derived_name}'")
+        tasks.append((full, derived_name))
 
-    # Then load from encodings folder
+    # Load any existing pickled encodings first (fast)
     logger.info(f"\nChecking Encodings folder: {ENCODINGS_DIR}")
     logger.info("-" * 60)
-    
-    # First try .pkl files
     pkl_files = glob.glob(os.path.join(ENCODINGS_DIR, "*.pkl"))
     logger.info(f"Found {len(pkl_files)} .pkl file(s)")
     for pkl_file in pkl_files:
@@ -277,28 +276,50 @@ def load_all_trained_faces():
             logger.info(f"Loading: {pkl_file}")
             with open(pkl_file, 'rb') as f:
                 enc = pickle.load(f)
-                if isinstance(enc, list):
-                    # If multiple encodings, use the first one
-                    known_face_encodings.append(enc[0])
-                    known_face_names.append(name)
+                if isinstance(enc, list) and enc:
+                    with encodings_lock:
+                        known_face_encodings.append(enc[0])
+                        known_face_names.append(name)
                     logger.info(f"  [OK] Loaded encoding for {name} (list format)")
-                else:
-                    known_face_encodings.append(enc)
-                    known_face_names.append(name)
+                elif enc is not None:
+                    with encodings_lock:
+                        known_face_encodings.append(enc)
+                        known_face_names.append(name)
                     logger.info(f"  [OK] Loaded encoding for {name}")
         except Exception as e:
             logger.error(f"  [ERROR] Could not load {pkl_file}: {e}")
 
-    # Then try image files in encodings folder
+    # Then look for image files in the encodings folder to encode if present
     image_extensions = ["*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"]
     image_files = []
     for ext in image_extensions:
         image_files.extend(glob.glob(os.path.join(ENCODINGS_DIR, ext)))
-    
-    logger.info(f"Found {len(image_files)} image file(s)")
+    logger.info(f"Found {len(image_files)} image file(s) in encodings folder")
     for img_path in image_files:
         name = os.path.splitext(os.path.basename(img_path))[0]
-        encode_image(img_path, name)
+        tasks.append((img_path, name))
+
+    # Encode images in parallel to speed up startup. face_recognition operations are
+    # mostly implemented in C and release the GIL, so a ThreadPoolExecutor is a good fit.
+    if tasks:
+        logger.info(f"Encoding {len(tasks)} image(s) using ThreadPoolExecutor")
+        try:
+            import concurrent.futures
+            max_workers = min(4, (os.cpu_count() or 1))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
+                futures = [ex.submit(encode_image, path, name) for path, name in tasks]
+                for fut in concurrent.futures.as_completed(futures):
+                    try:
+                        fut.result()
+                    except Exception as e:
+                        logger.error(f"Error encoding image in worker: {e}")
+        except Exception as e:
+            logger.warning(f"Parallel encoding failed, falling back to sequential: {e}")
+            for path, name in tasks:
+                try:
+                    encode_image(path, name)
+                except Exception as ee:
+                    logger.error(f"Sequential encode failed for {path}: {ee}")
 
     logger.info("=" * 60)
     logger.info(f"TOTAL KNOWN FACES LOADED: {len(known_face_encodings)}")
@@ -366,7 +387,7 @@ def background_face_recognition():
         logger.warning("No face recognition available - streaming only mode")
 
     frame_count = 0
-    process_every_n_frames = 2  # Process every 2nd frame for better performance
+    process_every_n_frames = 1  # Process every frame (improves detection reliability)
 
     while recognition_running and not stop_streaming:
         ret, frame = cap.read()
@@ -383,8 +404,8 @@ def background_face_recognition():
             rgb_small = cv2.cvtColor(small, cv2.COLOR_BGR2RGB)
 
             try:
-                # Detect faces
-                locs = face_recognition.face_locations(rgb_small, model=model)
+                # Detect faces (upsample once to improve small-face detection)
+                locs = face_recognition.face_locations(rgb_small, model=model, number_of_times_to_upsample=1)
                 
                 if locs:
                     # Get encodings for all detected faces
