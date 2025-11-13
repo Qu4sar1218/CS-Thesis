@@ -8,7 +8,6 @@ import "../styles/App.css";
 import StudentRegis from "./studentregis.jsx";
 import RegisterTeacher from "./teachregis.jsx";
 
-
 function App() {
   const [role, setRole] = useState(null);
   const [showStatusPanel, setShowStatusPanel] = useState(false);
@@ -17,7 +16,6 @@ function App() {
   const [panelMode, setPanelMode] = useState(null);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [currentPage, setCurrentPage] = useState("dashboard");
-
 
   const BACKEND_URL =
     process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
@@ -33,65 +31,111 @@ function App() {
     setSelectedSubject(null);
   };
 
-  // Trigger face recognition
+  // Trigger face recognition - FIXED VERSION
   const activateFaceRecognition = async ({ mode, subject } = {}) => {
+    console.log("🚀 Starting face recognition...");
     setIsStarting(true);
 
-    const tryPost = async (path) => {
-      try {
-        const res = await fetch(`${BACKEND_URL}${path}`, { method: "POST" });
-        if (!res.ok) throw new Error(`${path} returned ${res.status}`);
-        return true;
-      } catch {
-        return false;
+    try {
+      // ✅ FIXED: Only call the correct /start endpoint
+      console.log(`Calling ${BACKEND_URL}/start`);
+      const res = await fetch(`${BACKEND_URL}/start`, { method: "POST" });
+      
+      if (!res.ok) {
+        console.error(`Start failed with status ${res.status}`);
+        alert(`Failed to start recognition. Status: ${res.status}`);
+        setIsStarting(false);
+        return;
       }
-    };
 
-    // Try all backend start endpoints (no need to store 'started')
-    await tryPost("/start_recognition") ||
-      await tryPost("/start") ||
-      await tryPost("/start_stream_only");
+      const data = await res.json();
+      console.log("Start response:", data);
 
-    // Wait for camera confirmation
-    const startTime = Date.now();
-    while (Date.now() - startTime < 6000) {
-      try {
-        const res = await fetch(`${BACKEND_URL}/camera_status`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && (data.has_frame || data.camera_active)) break;
+      // Wait for camera to be ready
+      console.log("⏳ Waiting for camera to initialize...");
+      const startTime = Date.now();
+      let cameraReady = false;
+
+      while (Date.now() - startTime < 8000) {
+        try {
+          const statusRes = await fetch(`${BACKEND_URL}/camera_status`);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            console.log("Camera status:", statusData);
+            
+            if (statusData && (statusData.has_frame || statusData.camera_active)) {
+              console.log("✅ Camera is ready!");
+              cameraReady = true;
+              break;
+            }
+          }
+        } catch (err) {
+          console.warn("Camera status check failed:", err);
         }
-      } catch {}
-      await new Promise((r) => setTimeout(r, 250));
-    }
+        await new Promise((r) => setTimeout(r, 300));
+      }
 
-    if (mode) {
-      setPanelMode(mode);
-      setSelectedSubject(subject || null);
-      setShowStatusPanel(true);
-    } else {
-      setShowAttendanceMode(true);
-    }
+      if (!cameraReady) {
+        console.warn("⚠️ Camera took longer than expected to initialize");
+      }
 
-    setIsStarting(false);
+      // Show the status panel
+      if (mode) {
+        setPanelMode(mode);
+        setSelectedSubject(subject || null);
+        setShowStatusPanel(true);
+      } else {
+        setShowAttendanceMode(true);
+      }
+
+    } catch (error) {
+      console.error("❌ Failed to activate face recognition:", error);
+      alert(
+        `Failed to connect to backend at ${BACKEND_URL}\n\n` +
+        `Error: ${error.message}\n\n` +
+        `Make sure the backend server is running:\n` +
+        `python main.py`
+      );
+    } finally {
+      setIsStarting(false);
+    }
   };
 
   // Close recognition session
   const closeFaceRecognition = async () => {
+    console.log("🛑 Stopping face recognition...");
     setShowStatusPanel(false);
     setShowAttendanceMode(false);
     setPanelMode(null);
     setSelectedSubject(null);
+    
     try {
       await fetch(`${BACKEND_URL}/stop`, { method: "POST" });
+      console.log("✅ Recognition stopped");
     } catch (err) {
       console.error("Failed to stop recognition:", err);
     }
   };
 
   useEffect(() => {
-    // Optional initialization logic
-  }, []);
+    // Test backend connectivity on mount
+    const testBackend = async () => {
+      try {
+        console.log(`Testing backend at ${BACKEND_URL}`);
+        const res = await fetch(`${BACKEND_URL}/health`);
+        if (res.ok) {
+          const data = await res.json();
+          console.log("✅ Backend connected:", data);
+        } else {
+          console.warn("⚠️ Backend responded with status:", res.status);
+        }
+      } catch (err) {
+        console.error("❌ Backend not reachable:", err.message);
+        console.error("Make sure to run: python main.py");
+      }
+    };
+    testBackend();
+  }, [BACKEND_URL]);
 
   // If not logged in, show login page
   if (!role) return <Login onLogin={handleLogin} />;
@@ -136,9 +180,7 @@ function App() {
                     <div className="subject-name">
                       {s.name} {isToday(s) ? "• Today" : ""}
                     </div>
-                    <div className="subject-meta">
-                      Weekday: {s.weekday}
-                    </div>
+                    <div className="subject-meta">Weekday: {s.weekday}</div>
                   </button>
                 ))}
               </div>
@@ -214,26 +256,25 @@ function App() {
 
   // Dashboard handling based on role
   if (role === "admin") {
-  if (currentPage === "studentRegis") {
-    return <StudentRegis onBack={() => setCurrentPage("dashboard")} />;
-  }
-  if (currentPage === "teachregis") {
-    return <RegisterTeacher onBack={() => setCurrentPage("dashboard")} />;
-  }
+    if (currentPage === "studentRegis") {
+      return <StudentRegis onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "teachregis") {
+      return <RegisterTeacher onBack={() => setCurrentPage("dashboard")} />;
+    }
 
-  if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;
-  return showStatusPanel ? (
-    renderStatusPanel()
-  ) : (
-    <AdminDashboard
-      onLogout={handleLogout}
-      onTakeAttendance={() => activateFaceRecognition()}
-      starting={isStarting}
-      onNavigate={(page) => setCurrentPage(page)}
-    />
-  );
-}
-
+    if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;
+    return showStatusPanel ? (
+      renderStatusPanel()
+    ) : (
+      <AdminDashboard
+        onLogout={handleLogout}
+        onTakeAttendance={() => activateFaceRecognition()}
+        starting={isStarting}
+        onNavigate={(page) => setCurrentPage(page)}
+      />
+    );
+  }
 
   if (role === "teacher") {
     if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;

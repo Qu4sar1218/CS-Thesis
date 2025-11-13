@@ -15,14 +15,10 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "npx concurrently \"npm run react\" \"npm run server\"",
-    "react": "react-scripts start",
-    "server": "cd ../face-attendance-backend && \"C:/CS Thesis/.venv/Scripts/python.exe\" -m uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "backend-only": "cd ../face-attendance-backend && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000",
-    "frontend-only": "react-scripts start"
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -41,9 +37,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1"
   },
   "proxy": "http://127.0.0.1:8000"
 }

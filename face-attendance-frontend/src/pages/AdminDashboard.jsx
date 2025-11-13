@@ -1,58 +1,105 @@
-import React from "react";
+import React, { useState } from "react";
 import '../styles/AdminDashboard.css';
 
 export default function AdminDashboard({ onLogout, onTakeAttendance, starting, onNavigate }) {
-  // Delegate to parent-provided handler which opens StatusPanel; StatusPanel starts camera itself
+  const [isOpen, setIsOpen] = useState(false);
+
   const handleTakeAttendance = async () => {
     if (typeof onTakeAttendance === "function") {
       await onTakeAttendance();
-    } else {
-      console.warn('onTakeAttendance callback not provided');
     }
   };
 
   return (
-    <main className="admin-dashboard">
-      <h1>Admin Dashboard</h1>
-      <p>Welcome, Admin. You can manage users and system settings here.</p>
+    <div className="admin-dashboard-wrapper">
 
-      <nav className="admin-btns" aria-label="admin actions">
-        <button
-          className="admin-btn primary"
-          onClick={handleTakeAttendance}
-          disabled={typeof onTakeAttendance !== 'function' || starting}
-        >
-          {typeof onTakeAttendance !== 'function'
-            ? 'Take Attendance (unavailable)'
-            : (starting ? 'Starting…' : 'Take Attendance')}
-        </button>
-
-        {/* opens registration form with face recognition training */}
-        <button
-          className="admin-btn primary"
-          onClick={() => onNavigate && onNavigate("studentRegis")}
-        >
-          Register Student
-        </button>
-
-        {/* opens registration form */}
+      {/* Mobile hamburger button */}
+      {!isOpen && (
         <button 
-        className="admin-btn secondary"  
-        onClick={() => onNavigate && onNavigate("teachregis")}
+          className="mobile-menu-btn"
+          onClick={() => setIsOpen(true)}
+          aria-label="Open menu"
         >
-          Register Teacher
+          ☰
         </button>
+      )}
 
-        {/* with edit/delete of students */}
-        <button className="admin-btn secondary">Student List</button>
+      {/* Sidebar */}
+      <aside className={`admin-sidebar ${isOpen ? 'open' : 'closed'}`}>
+        
+        {/* Sidebar Header */}
+        <div className="sidebar-header">
+          <div className="logo-section">
+            <div className="logo-icon">A</div>
+            {isOpen && <h2 className="logo-text">Admin Panel</h2>}
+          </div>
 
-        <button className="admin-btn secondary">Manage Classes</button>
-        <button className="admin-btn secondary">Reports</button>
-        <button className="admin-btn secondary">Analytics</button>
-        <button className="admin-btn secondary">Logs</button>
-      </nav>
+          {/* Desktop open/close toggle */}
+          <button
+            className="desktop-toggle-btn"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {isOpen ? "←" : "→"}
+          </button>
 
-      <button className="admin-logout" onClick={onLogout}>Logout</button>
-    </main>
+          {/* Mobile close X */}
+          {isOpen && (
+            <button 
+              className="mobile-close-btn inline-close"
+              onClick={() => setIsOpen(false)}
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+          <div className="nav-section">
+            <button
+              className="nav-item"
+              onClick={handleTakeAttendance}
+              disabled={typeof onTakeAttendance !== 'function' || starting}
+            >
+              <span className="nav-icon">📸</span>
+              {isOpen && <span className="nav-text">{starting ? "Starting…" : "Take Attendance"}</span>}
+            </button>
+
+            <button className="nav-item" onClick={() => onNavigate?.("studentRegis")}>
+              <span className="nav-icon">👤</span>
+              {isOpen && <span className="nav-text">Register Student</span>}
+            </button>
+
+            <button className="nav-item" onClick={() => onNavigate?.("teachregis")}>
+              <span className="nav-icon">👨‍🏫</span>
+              {isOpen && <span className="nav-text">Register Teacher</span>}
+            </button>
+          </div>
+
+          <div className="nav-section">
+            <button className="nav-item"><span className="nav-icon">📋</span>{isOpen && <span className="nav-text">Student List</span>}</button>
+            <button className="nav-item"><span className="nav-icon">🏫</span>{isOpen && <span className="nav-text">Manage Classes</span>}</button>
+            <button className="nav-item"><span className="nav-icon">📊</span>{isOpen && <span className="nav-text">Reports</span>}</button>
+            <button className="nav-item"><span className="nav-icon">📈</span>{isOpen && <span className="nav-text">Analytics</span>}</button>
+            <button className="nav-item"><span className="nav-icon">📝</span>{isOpen && <span className="nav-text">Logs</span>}</button>
+          </div>
+        </nav>
+
+        <button className="sidebar-logout" onClick={onLogout}>
+          <span className="nav-icon">🚪</span>
+          {isOpen && <span className="nav-text">Logout</span>}
+        </button>
+      </aside>
+
+      {/* Content */}
+      <main className="admin-main-content">
+        <div className="content-header">
+          <h1>Admin Dashboard</h1>
+          <p>Welcome, Admin. You can manage users and system settings here.</p>
+        </div>
+      </main>
+    </div>
   );
 }
