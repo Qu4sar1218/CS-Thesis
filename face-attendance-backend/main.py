@@ -61,6 +61,9 @@ encodings_lock = threading.Lock()
 attendance_records = []
 attendance_lock = threading.Lock()
 
+# Database global
+db = None
+
 FACE_MATCH_THRESHOLD = 0.5  # Lower threshold for better recognition
 PROCESS_EVERY_N_FRAMES = 2
 JPEG_QUALITY = 70
@@ -69,6 +72,12 @@ FRAME_SCALE = 0.5  # Scale down for faster processing
 # App
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# Start background face loading
+@app.on_event("startup")
+def startup():
+    threading.Thread(target=background_load_faces, daemon=True).start()
+    logger.info("🚀 Server started - loading faces from disk")
 
 
 # === FACE LOADING === #
@@ -182,12 +191,17 @@ def recognition_loop():
                                 # Record attendance
                                 with attendance_lock:
                                     if not any(record['name'] == name for record in attendance_records):
-                                        attendance_records.append({
+                                        record = {
                                             'name': name,
                                             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                             'course': 'Unknown',
                                             'year': 'Unknown'
-                                        })
+                                        }
+                                        attendance_records.append(record)
+
+                                        # Save to database asynchronously
+                                        if db:
+                                            threading.Thread(target=save_attendance_to_db, args=(record,), daemon=True).start()
 
                     # Draw name immediately
                     cv2.putText(frame, name, (left, top - 10),
@@ -258,6 +272,8 @@ def reload_faces():
     return {"status": "reloading"}
 
 
+
+
 @app.get("/status")
 def get_status():
     """Get current system status."""
@@ -285,6 +301,20 @@ def get_attendance():
     with attendance_lock:
         return {"attendance": attendance_records.copy()}
 
+@app.get("/attendance-db")
+async def get_attendance_from_db():
+    """Get attendance records from database."""
+    try:
+        attendance_collection = db.attendance
+        records = []
+        async for record in attendance_collection.find().sort("timestamp", -1).limit(100):
+            record['_id'] = str(record['_id'])  # Convert ObjectId to string
+            records.append(record)
+        return {"attendance": records}
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch attendance from DB: {e}")
+        return JSONResponse({"error": "Failed to fetch attendance"}, status_code=500)
+
 
 @app.get("/snapshot")
 def snapshot():
@@ -305,11 +335,11 @@ def clear_attendance():
     return {"status": "cleared"}
 
 
+
+
 # === STARTUP === #
-@app.on_event("startup")
-def startup_event():
-    threading.Thread(target=background_load_faces, daemon=True).start()
-    logger.info("🚀 Server started - loading faces in background")
+# Note: Database startup is handled above, this is for backward compatibility
+# This event is now redundant but kept for compatibility
 
 
 # === MAIN ENTRY === #

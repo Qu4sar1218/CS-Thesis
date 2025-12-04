@@ -5,31 +5,31 @@ function Login({ onLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Sample hard-coded accounts (for demo). In production, replace with backend auth.
-    const accounts = {
-      "admin@example.com": "adminpass8",
-      "teacher@example.com": "teachpass8",
-      "student@example.com": "studpass8",
+
+    // Simple hardcoded login for demo purposes
+    // Admin credentials: admin@school.com / admin123
+    // Teacher credentials: teacher@school.com / teacher123
+    // Student credentials: student@school.com / student123
+
+    const validCredentials = {
+      "admin@example.com": { password: "admin123", role: "admin", full_name: "Administrator" },
+      "teacher@school.com": { password: "teacher123", role: "teacher", full_name: "Teacher User" },
+      "student@school.com": { password: "student123", role: "student", full_name: "Student User" }
     };
 
-    const correct = accounts[email];
-    if (!correct) {
-      alert("Invalid email");
-      return;
-    }
-
-    if (password === correct) {
-      // determine role by email
-      let role = "admin";
-      if (email === "teacher@example.com") role = "teacher";
-      else if (email === "student@example.com") role = "student";
-
+    if (validCredentials[email] && validCredentials[email].password === password) {
+      const user = validCredentials[email];
       alert("Login successful!");
-      onLogin(role); // pass role up to App
+      onLogin(user.role, {
+        user_id: email.split('@')[0],
+        role: user.role,
+        full_name: user.full_name,
+        email: email
+      });
     } else {
-      alert("Invalid credentials");
+      alert("Login failed: Invalid email or password");
     }
   };
 
@@ -37,11 +37,8 @@ function Login({ onLogin }) {
     <div className="login-wrapper">
       <main className="login-card" role="main" aria-label="Login">
         <header className="login-header">
-          <div className="login-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-              <path d="M12 12a4 4 0 100-8 4 4 0 000 8z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4 20a8 8 0 0116 0" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <div className="school-logo-container">
+            <img src="/SchoolLogo.png" alt="School Logo" className="school-logo" />
           </div>
 
           <div className="decorative-dots">

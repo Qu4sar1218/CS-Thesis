@@ -7,6 +7,13 @@ import StudentDashboard from "./StudentDashboard.jsx";
 import "../styles/App.css";
 import StudentRegis from "./studentregis.jsx";
 import RegisterTeacher from "./teachregis.jsx";
+import StudentList from "./StudentList.jsx";
+import TeacherList from "./TeacherList.jsx";
+import ManageClasses from "./ManageClasses.jsx";
+import Reports from "./Reports.jsx";
+import Analytics from "./Analytics.jsx";
+import Settings from "./Settings.jsx";
+import Notifications from "./Notifications.jsx";
 
 function App() {
   const [role, setRole] = useState(null);
@@ -261,6 +268,27 @@ function App() {
     }
     if (currentPage === "teachregis") {
       return <RegisterTeacher onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "studentList") {
+      return <StudentList onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "teacherList") {
+      return <TeacherList onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "manageClasses") {
+      return <ManageClasses onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "reports") {
+      return <Reports onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "analytics") {
+      return <Analytics onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "settings") {
+      return <Settings onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "notifications") {
+      return <Notifications onBack={() => setCurrentPage("dashboard")} />;
     }
 
     if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;

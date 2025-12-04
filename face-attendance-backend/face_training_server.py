@@ -8,6 +8,10 @@ import pickle
 from datetime import datetime
 from werkzeug.utils import secure_filename
 
+# MongoDB imports
+from pymongo import MongoClient
+
+
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React frontend
 

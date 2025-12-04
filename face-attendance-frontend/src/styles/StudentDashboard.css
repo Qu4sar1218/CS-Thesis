@@ -115,7 +115,13 @@
 .nav-section {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.nav-section:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 16px;
 }
 
 .nav-item {
@@ -185,6 +191,214 @@
 }
 .student-sidebar.closed ~ .student-main-content {
     margin-left:80px;
+}
+
+/* Student Stats */
+.student-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    text-align: center;
+}
+
+.stat-card h3 {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    color: #10b981;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.stat-description {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+/* Today's Schedule */
+.student-schedule {
+    margin-top: 40px;
+}
+
+.student-schedule h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.schedule-time {
+    color: #10b981;
+    font-weight: 600;
+    font-size: 16px;
+    min-width: 80px;
+}
+
+.schedule-details {
+    flex: 1;
+}
+
+.schedule-subject {
+    color: white;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 5px;
+}
+
+.schedule-room {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.schedule-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.schedule-status.attended {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.schedule-status.upcoming {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.schedule-status.pending {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* Recent Activity */
+.recent-activity {
+    margin-top: 40px;
+}
+
+.recent-activity h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+}
+
+.activity-icon {
+    font-size: 24px;
+}
+
+.activity-details {
+    flex: 1;
+}
+
+.activity-title {
+    color: white;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.activity-time {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+/* Quick Actions */
+.student-actions {
+    margin-top: 40px;
+}
+
+.student-actions h2 {
+    color: white;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.action-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.action-btn:hover {
+    transform: translateY(-1px);
 }
 
 /* ================= MOBILE ================= */
