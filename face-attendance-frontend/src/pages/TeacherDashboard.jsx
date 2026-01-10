@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import '../styles/TeacherDashboard.css';
 
-export default function TeacherDashboard({ onLogout, onTakeAttendance, starting }) {
+export default function TeacherDashboard({ onLogout, onTakeAttendance, starting, userInfo }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleTakeAttendance = async () => {
@@ -113,8 +113,8 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting 
       {/* Content */}
       <main className="teacher-main-content">
         <div className="content-header">
-          <h1>Teacher Dashboard</h1>
-          <p>Welcome, Teacher. Take attendance, review students, and manage classes.</p>
+          <h1>Welcome, Teacher{userInfo?.full_name && userInfo.full_name !== 'Teacher' ? ` ${userInfo.full_name}` : ''}</h1>
+          <p>Take attendance, review students, and manage classes.</p>
         </div>
 
         {/* Teacher-specific content */}

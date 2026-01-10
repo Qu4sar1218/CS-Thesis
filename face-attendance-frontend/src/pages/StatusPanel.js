@@ -10,6 +10,7 @@ function StatusPanel({ mode, subject }) {
   const [isRecognitionActive, setIsRecognitionActive] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
   const [useSnapshotFallback, setUseSnapshotFallback] = useState(false);
+  const [recentlyRecognized, setRecentlyRecognized] = useState(null);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
   
@@ -40,6 +41,9 @@ function StatusPanel({ mode, subject }) {
 
       const attendanceRes = await axios.get(`${BACKEND_URL}/attendance`);
       setAttendance(attendanceRes.data.attendance || []);
+
+      const recognizedRes = await axios.get(`${BACKEND_URL}/recently-recognized`);
+      setRecentlyRecognized(recognizedRes.data.recently_recognized);
     } catch (err) {
       console.error("Error fetching status:", err);
     }
@@ -135,9 +139,9 @@ function StatusPanel({ mode, subject }) {
       clearInterval(cameraStatusIntervalRef.current);
       cameraStatusIntervalRef.current = null;
     }
-    
+
     updateImageSrc(null);
-    
+
     axios.post(`${BACKEND_URL}/stop`).catch(err => {
       console.error("Error stopping backend:", err);
     });
@@ -156,6 +160,14 @@ function StatusPanel({ mode, subject }) {
     setUseSnapshotFallback(false);
     setStreamConnected(true);
   }, []);
+
+  // Set up continuous live feed once when starting
+  useEffect(() => {
+    if (streamConnected && !useSnapshotFallback && !imageSrc) {
+      const streamUrl = `${BACKEND_URL}/video?t=${Date.now()}`;
+      updateImageSrc(streamUrl);
+    }
+  }, [streamConnected, useSnapshotFallback, imageSrc, BACKEND_URL]);
 
   const handleImageError = useCallback(() => {
     if (streamTimeoutRef.current) {
@@ -186,18 +198,18 @@ function StatusPanel({ mode, subject }) {
   useEffect(() => {
     if (useSnapshotFallback) {
       console.log("Using snapshot fallback - MJPEG stream unavailable");
-      
+
       const pollSnapshot = async () => {
         try {
           const res = await fetch(`${BACKEND_URL}/snapshot?ts=${Date.now()}`);
           if (!res.ok) throw new Error("Snapshot failed");
           const blob = await res.blob();
           const url = URL.createObjectURL(blob);
-          
+
           if (imageSrcRef.current && imageSrcRef.current.startsWith('blob:')) {
             URL.revokeObjectURL(imageSrcRef.current);
           }
-          
+
           updateImageSrc(url);
         } catch (e) {
           console.error("Snapshot polling error:", e);
@@ -205,8 +217,8 @@ function StatusPanel({ mode, subject }) {
       };
 
       pollSnapshot();
-      snapshotIntervalRef.current = setInterval(pollSnapshot, 800);
-      
+      snapshotIntervalRef.current = setInterval(pollSnapshot, 200); // Faster polling for live feed
+
       return () => {
         if (snapshotIntervalRef.current) {
           clearInterval(snapshotIntervalRef.current);
@@ -236,6 +248,7 @@ function StatusPanel({ mode, subject }) {
 
         {imageSrc ? (
           <img
+            key={imageSrc} // Force re-render when src changes
             src={imageSrc}
             alt="Live Camera"
             className={`video-feed ${isStreamLoading ? 'loading' : ''}`}
@@ -273,7 +286,7 @@ function StatusPanel({ mode, subject }) {
 
         <section className="card system-status" aria-labelledby="system-status-heading">
           <h2 id="system-status-heading">System Status</h2>
-          <div className="status-grid">
+          <div className="status-grid compact">
             <div className="status-item">
               <span className="label">Recognition</span>
               <span className={`value ${status.recognition_running ? 'active' : 'inactive'}`}>
@@ -291,22 +304,18 @@ function StatusPanel({ mode, subject }) {
               <span className="value">{status.status || "Unknown"}</span>
             </div>
           </div>
-          
-          <div className="detection-results">
-            <p>Face detection results will appear here when students are recognized.</p>
-          </div>
 
           <footer className="control-footer">
             {isRecognitionActive || status.recognition_running ? (
-              <button 
-                onClick={handleStopRecognition} 
+              <button
+                onClick={handleStopRecognition}
                 className="control-btn stop"
               >
                 Stop Recognition
               </button>
             ) : (
-              <button 
-                onClick={handleStartRecognition} 
+              <button
+                onClick={handleStartRecognition}
                 disabled={isStreamLoading}
                 className="control-btn start"
               >
@@ -315,6 +324,24 @@ function StatusPanel({ mode, subject }) {
             )}
           </footer>
         </section>
+
+        {recentlyRecognized && (
+          <section className="card student-details" aria-labelledby="student-details-heading">
+            <h2 id="student-details-heading">Student Recognized</h2>
+            <div className="student-info">
+              <div className="student-main">
+                <h3 className="student-name">{recentlyRecognized.name}</h3>
+                <p className="student-id">ID: {recentlyRecognized.student_id}</p>
+              </div>
+              <div className="student-meta">
+                <p><strong>Course:</strong> {recentlyRecognized.course}</p>
+                <p><strong>Year:</strong> {recentlyRecognized.year}</p>
+                <p><strong>Time:</strong> {recentlyRecognized.time}</p>
+                <p><strong>Date:</strong> {recentlyRecognized.date}</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         <section className="card attendance-list" aria-labelledby="attendance-heading">
           <h2 id="attendance-heading">Attendance</h2>

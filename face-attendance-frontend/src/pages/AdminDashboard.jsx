@@ -87,6 +87,8 @@ export default function AdminDashboard({ onLogout, onTakeAttendance, starting, o
             <button className="nav-item" onClick={() => onNavigate?.("systemLogs")}><span className="nav-icon">📝</span>{isOpen && <span className="nav-text">System Logs</span>}</button>
             <button className="nav-item" onClick={() => onNavigate?.("settings")}><span className="nav-icon">⚙️</span>{isOpen && <span className="nav-text">Settings</span>}</button>
             <button className="nav-item" onClick={() => onNavigate?.("notifications")}><span className="nav-icon">🔔</span>{isOpen && <span className="nav-text">Notifications</span>}</button>
+            <button className="nav-item" onClick={() => onNavigate?.("receiptVerification")}><span className="nav-icon">🧾</span>{isOpen && <span className="nav-text">Receipt Verification</span>}</button>
+            <button className="nav-item" onClick={() => onNavigate?.("eventManagement")}><span className="nav-icon">🎉</span>{isOpen && <span className="nav-text">Manage Events</span>}</button>
           </div>
         </nav>
 
@@ -206,6 +208,7 @@ export default function AdminDashboard({ onLogout, onTakeAttendance, starting, o
             <h3>🚀 Quick Actions</h3>
             <div className="feature-buttons">
               <button className="feature-btn primary">Bulk Import Students</button>
+              <button className="feature-btn secondary" onClick={() => onNavigate?.("receiptVerification")}>Receipt Verification</button>
               <button className="feature-btn secondary">Export Reports</button>
               <button className="feature-btn secondary">System Maintenance</button>
             </div>

@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
-import StatusPanel from "./StatusPanel.js";
+import React, { useState, useEffect } from 'react';
+
 import Login from "./Login.jsx";
 import AdminDashboard from "./AdminDashboard.jsx";
+import AdminReceiptVerification from "./AdminReceiptVerification.jsx";
+import StudentReceiptSubmission from "./StudentReceiptSubmission.jsx";
 import TeacherDashboard from "./TeacherDashboard.jsx";
 import StudentDashboard from "./StudentDashboard.jsx";
+import StatusPanel from "./StatusPanel.js";
+import EventManagement from "./EventManagement.jsx";
 import "../styles/App.css";
 import StudentRegis from "./studentregis.jsx";
 import RegisterTeacher from "./teachregis.jsx";
@@ -17,6 +21,7 @@ import Notifications from "./Notifications.jsx";
 
 function App() {
   const [role, setRole] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
   const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [showAttendanceMode, setShowAttendanceMode] = useState(false);
@@ -28,10 +33,14 @@ function App() {
     process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
   // Handle login and logout
-  const handleLogin = (userRole) => setRole(userRole || "admin");
+  const handleLogin = (userRole, userData) => {
+    setRole(userRole || "admin");
+    setUserInfo(userData || null);
+  };
 
   const handleLogout = () => {
     setRole(null);
+    setUserInfo(null);
     setShowStatusPanel(false);
     setShowAttendanceMode(false);
     setPanelMode(null);
@@ -290,6 +299,12 @@ function App() {
     if (currentPage === "notifications") {
       return <Notifications onBack={() => setCurrentPage("dashboard")} />;
     }
+    if (currentPage === "receiptVerification") {
+      return <AdminReceiptVerification onBack={() => setCurrentPage("dashboard")} />;
+    }
+    if (currentPage === "eventManagement") {
+      return <EventManagement onBack={() => setCurrentPage("dashboard")} />;
+    }
 
     if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;
     return showStatusPanel ? (
@@ -313,8 +328,13 @@ function App() {
         onLogout={handleLogout}
         onTakeAttendance={() => activateFaceRecognition()}
         starting={isStarting}
+        userInfo={userInfo}
       />
     );
+  }
+
+  if (currentPage === "receiptSubmission") {
+    return <StudentReceiptSubmission studentId={userInfo?.user_id || "114001"} onBack={() => setCurrentPage("dashboard")} />;
   }
 
   if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;
@@ -325,7 +345,9 @@ function App() {
     <StudentDashboard
       onLogout={handleLogout}
       onFaceRecognition={() => activateFaceRecognition()}
+      onNavigate={(page) => setCurrentPage(page)}
       starting={isStarting}
+      userInfo={userInfo}
     />
   );
 }

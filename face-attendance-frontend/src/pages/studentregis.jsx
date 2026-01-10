@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import "../styles/RegisterStudent.css";
 import "../styles/WebcamModal.css";
 
+const API_BASE_URL = "http://localhost:8000";
+
 export default function StudentRegis({ onBack }) {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -15,6 +17,7 @@ export default function StudentRegis({ onBack }) {
     section: "",
   });
 
+  const [courseOptions, setCourseOptions] = useState([]);
   const [message, setMessage] = useState("");
   const [studentId, setStudentId] = useState("");
   const [showWebcam, setShowWebcam] = useState(false);
@@ -30,12 +33,15 @@ export default function StudentRegis({ onBack }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'yearLevel') {
+      setFormData((prev) => ({ ...prev, course: '' }));
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { firstName, lastName, birthday, course } = formData;
+    const { firstName, lastName, birthday, course, yearLevel, address, guardianContact, section } = formData;
 
     // Basic validation
     if (!firstName || !lastName || !birthday || !course) {
@@ -43,15 +49,45 @@ export default function StudentRegis({ onBack }) {
       return;
     }
 
-    // Generate student ID (you can replace this with your own logic)
-    const generatedId = `STU${Date.now()}`;
-    setStudentId(generatedId);
+    // Generate student ID in format 11XXXX (11 + 4 random digits)
+    const randomDigits = Math.floor(1000 + Math.random() * 9000).toString();
+    const generatedId = `11${randomDigits}`;
 
-    setMessage(
-      `✅ Student "${firstName} ${lastName}" registered successfully! Student ID: ${generatedId}. Now train face recognition data.`
-    );
+    try {
+      const studentData = {
+        student_id: generatedId,
+        first_name: firstName,
+        last_name: lastName,
+        email: "", // Not collected in form
+        course: course,
+        year: yearLevel,
+        // Optional fields
+        ...(address && { address }),
+        ...(guardianContact && { guardian_contact: guardianContact }),
+        ...(section && { section })
+      };
 
-    // Don't reset form yet - keep data for face training
+      const response = await fetch(`${API_BASE_URL}/students`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(studentData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setStudentId(generatedId);
+        setMessage(
+          `✅ Student "${firstName} ${lastName}" registered successfully! Student ID: STU ${generatedId}. Now train face recognition data.`
+        );
+      } else {
+        setMessage(`❌ Registration failed: ${result.detail || result.error}`);
+      }
+    } catch (error) {
+      setMessage(`❌ Error registering student: ${error.message}`);
+    }
   };
 
   const startWebcam = async () => {
@@ -158,11 +194,10 @@ export default function StudentRegis({ onBack }) {
       // Send each image to the backend
       for (let i = 0; i < capturedImages.length; i++) {
         const formData = new FormData();
-        formData.append("student_id", studentId);
         formData.append("image", capturedImages[i], `face_${i + 1}.jpg`);
 
         try {
-          const response = await fetch("http://localhost:5000/train-face", {
+          const response = await fetch(`${API_BASE_URL}/students/${studentId}/face-encodings`, {
             method: "POST",
             body: formData,
           });
@@ -176,7 +211,7 @@ export default function StudentRegis({ onBack }) {
             );
           } else {
             failCount++;
-            console.error(`Image ${i + 1} failed:`, result.error);
+            console.error(`Image ${i + 1} failed:`, result.detail || result.error);
           }
         } catch (error) {
           failCount++;
@@ -237,6 +272,17 @@ export default function StudentRegis({ onBack }) {
     }
     startWebcam();
   };
+
+  // Update course options based on year level
+  useEffect(() => {
+    if (formData.yearLevel === 'Grade 11' || formData.yearLevel === 'Grade 12') {
+      setCourseOptions(['STEM', 'GAS', 'ICT']);
+    } else if (formData.yearLevel.includes('Year College')) {
+      setCourseOptions(['BSIT', 'BSCS', 'BSENTREP', 'BSBA', 'BSED']);
+    } else {
+      setCourseOptions([]);
+    }
+  }, [formData.yearLevel]);
 
   // Cleanup webcam on unmount
   useEffect(() => {
@@ -319,26 +365,39 @@ export default function StudentRegis({ onBack }) {
         </label>
 
         <label>
-          Course/Strand:
-          <input
-            type="text"
-            name="course"
-            value={formData.course}
-            onChange={handleChange}
-            placeholder="Enter course (e.g. BSIT)"
-            required
-          />
-        </label>
-
-        <label>
           Grade/Year Level:
-          <input
-            type="text"
+          <select
             name="yearLevel"
             value={formData.yearLevel}
             onChange={handleChange}
-            placeholder="Enter year level (e.g. 1st Year)"
-          />
+            required
+          >
+            <option value="">Select Year Level</option>
+            <option value="Grade 11">Grade 11</option>
+            <option value="Grade 12">Grade 12</option>
+            <option value="1st Year College">1st Year College</option>
+            <option value="2nd Year College">2nd Year College</option>
+            <option value="3rd Year College">3rd Year College</option>
+            <option value="4th Year College">4th Year College</option>
+          </select>
+        </label>
+
+        <label>
+          Course/Strand:
+          <select
+            name="course"
+            value={formData.course}
+            onChange={handleChange}
+            required
+            disabled={!formData.yearLevel}
+          >
+            <option value="">Select Course/Strand</option>
+            {courseOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
@@ -379,7 +438,7 @@ export default function StudentRegis({ onBack }) {
           <div className="webcam-modal">
             <h2>Face Recognition Training</h2>
             <p className="student-id-display">
-              Student ID: <strong>{studentId}</strong>
+              Student ID: <strong>STU {studentId}</strong>
             </p>
 
             <div className="video-container">

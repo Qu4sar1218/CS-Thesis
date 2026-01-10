@@ -2,34 +2,91 @@ import React, { useState } from "react";
 import '../styles/Login.css';
 
 function Login({ onLogin }) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const decodeJWT = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload;
+    } catch (e) {
+      return null;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    // Simple hardcoded login for demo purposes
-    // Admin credentials: admin@school.com / admin123
-    // Teacher credentials: teacher@school.com / teacher123
-    // Student credentials: student@school.com / student123
-
-    const validCredentials = {
-      "admin@example.com": { password: "admin123", role: "admin", full_name: "Administrator" },
-      "teacher@school.com": { password: "teacher123", role: "teacher", full_name: "Teacher User" },
-      "student@school.com": { password: "student123", role: "student", full_name: "Student User" }
-    };
-
-    if (validCredentials[email] && validCredentials[email].password === password) {
-      const user = validCredentials[email];
-      alert("Login successful!");
-      onLogin(user.role, {
-        user_id: email.split('@')[0],
-        role: user.role,
-        full_name: user.full_name,
-        email: email
+    try {
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
       });
-    } else {
-      alert("Login failed: Invalid email or password");
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store token
+        localStorage.setItem('token', data.access_token);
+
+        // Decode token to get user info
+        const decoded = decodeJWT(data.access_token);
+        if (decoded) {
+          const role = decoded.role;
+          const user_id = decoded.sub;
+
+          // Get additional user info based on role
+          let userInfo = { user_id: data.user_id || user_id, role };
+
+          // Always fetch the actual full name from the database for proper personalization
+          try {
+            const fetchId = role === 'student' ? user_id : data.user_id; // For teachers, use teacher_id from response
+            const endpoint = role === 'student' ? `/students/${fetchId}` : `/teachers/${fetchId}`;
+            const userResponse = await fetch(`http://localhost:8000${endpoint}`, {
+              headers: {
+                'Authorization': `Bearer ${data.access_token}`,
+              },
+            });
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              userInfo.full_name = `${userData.first_name} ${userData.last_name}`.trim();
+            } else {
+              // Fallback if fetch fails - use backend provided name or empty
+              userInfo.full_name = data.full_name || '';
+            }
+          } catch (error) {
+            console.error('Error fetching user name:', error);
+            // Fallback if fetch fails - use backend provided name or empty
+            userInfo.full_name = data.full_name || '';
+          }
+
+          if (role === 'student') {
+            userInfo.email = `${user_id}@student.edu`; // Placeholder
+          } else {
+            userInfo.email = username;
+          }
+
+          alert("Login successful!");
+          onLogin(role, userInfo);
+        } else {
+          alert("Login failed: Invalid token");
+        }
+      } else {
+        alert(`Login failed: ${data.detail || 'Invalid credentials'}`);
+      }
+    } catch (error) {
+      alert("Login failed: Network error");
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,7 +110,7 @@ function Login({ onLogin }) {
 
         <form onSubmit={handleSubmit} className="login-form" noValidate>
           <div className="input-group">
-            <label className="input-label" htmlFor="email">Email</label>
+            <label className="input-label" htmlFor="username">Username</label>
             <div className="input-wrapper">
               <span className="input-icon" aria-hidden>
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -62,12 +119,12 @@ function Login({ onLogin }) {
                 </svg>
               </span>
               <input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
+                id="username"
+                type="text"
+                placeholder="Enter your email or student ID"
                 className="input-field"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -94,14 +151,14 @@ function Login({ onLogin }) {
             </div>
           </div>
 
-          <button type="submit" className="submit-button">
+          <button type="submit" className="submit-button" disabled={loading}>
             <span className="button-icon" aria-hidden>
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path d="M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 

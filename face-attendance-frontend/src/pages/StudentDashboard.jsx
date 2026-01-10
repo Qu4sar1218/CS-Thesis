@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import '../styles/StudentDashboard.css';
 
-export default function StudentDashboard({ onLogout, onFaceRecognition }) {
+export default function StudentDashboard({ onLogout, onFaceRecognition, onNavigate, userInfo }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -77,9 +77,19 @@ export default function StudentDashboard({ onLogout, onFaceRecognition }) {
               {isOpen && <span className="nav-text">Profile</span>}
             </button>
 
+            <button className="nav-item" onClick={() => onNavigate && onNavigate("settings")}>
+              <span className="nav-icon">⚙️</span>
+              {isOpen && <span className="nav-text">Settings</span>}
+            </button>
+
             <button className="nav-item">
               <span className="nav-icon">💬</span>
               {isOpen && <span className="nav-text">Messages</span>}
+            </button>
+
+            <button className="nav-item" onClick={() => onNavigate && onNavigate("receiptSubmission")}>
+              <span className="nav-icon">🧾</span>
+              {isOpen && <span className="nav-text">Submit Receipt</span>}
             </button>
 
             <button className="nav-item">
@@ -98,8 +108,8 @@ export default function StudentDashboard({ onLogout, onFaceRecognition }) {
       {/* Content */}
       <main className="student-main-content">
         <div className="content-header">
-          <h1>Student Dashboard</h1>
-          <p>Welcome, Student. View your attendance and schedule here.</p>
+          <h1>Welcome, Student{userInfo?.full_name ? ` ${userInfo.full_name}` : ''}</h1>
+          <p>View your attendance and schedule here.</p>
         </div>
 
         {/* Student-specific content */}

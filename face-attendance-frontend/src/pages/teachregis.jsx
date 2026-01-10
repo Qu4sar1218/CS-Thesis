@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import '../styles/RegisterTeacher.css';
 
+const API_BASE_URL = "http://localhost:8000";
+
 export default function RegisterTeacher({ onBack }) {
   const [formData, setFormData] = useState({
-    fullName: "",
-    employeeId: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     department: "",
     email: "",
     phone: "",
@@ -20,39 +23,35 @@ export default function RegisterTeacher({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { fullName, employeeId, department } = formData;
+    const { firstName, lastName, department } = formData;
 
     // Basic validation
-    if (!fullName || !employeeId || !department) {
+    if (!firstName || !lastName || !department) {
       setMessage("⚠️ Please fill out all required fields before submitting.");
       return;
     }
 
-    // Generate teacher ID (you can replace this with your own logic)
-    const generatedId = `TCH${Date.now()}`;
-
     try {
       // Save teacher data to backend
-      const response = await fetch("http://localhost:8000/register-teacher", {
+      const response = await fetch(`${API_BASE_URL}/teachers`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          teacher_id: generatedId,
-          full_name: fullName,
-          employee_id: employeeId,
+          first_name: firstName,
+          last_name: lastName,
           department: department,
           email: formData.email,
-          phone: formData.phone,
         }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
+        const fullName = `${firstName} ${formData.middleName ? formData.middleName + ' ' : ''}${lastName}`;
         setMessage(
-          `✅ Teacher "${fullName}" registered successfully! Teacher ID: ${generatedId}.`
+          `✅ Teacher "${fullName}" registered successfully! Teacher ID: ${result.teacher_id}.`
         );
 
         // Reset form after successful registration
@@ -69,8 +68,9 @@ export default function RegisterTeacher({ onBack }) {
 
   const resetForm = () => {
     setFormData({
-      fullName: "",
-      employeeId: "",
+      firstName: "",
+      middleName: "",
+      lastName: "",
       department: "",
       email: "",
       phone: "",
@@ -84,25 +84,36 @@ export default function RegisterTeacher({ onBack }) {
 
       <form className="register-form" onSubmit={handleSubmit}>
         <label>
-          Full Name:
+          First Name:
           <input
             type="text"
-            name="fullName"
-            value={formData.fullName}
+            name="firstName"
+            value={formData.firstName}
             onChange={handleChange}
-            placeholder="Enter full name"
+            placeholder="Enter first name"
             required
           />
         </label>
 
         <label>
-          Employee ID:
+          Middle Name:
           <input
             type="text"
-            name="employeeId"
-            value={formData.employeeId}
+            name="middleName"
+            value={formData.middleName}
             onChange={handleChange}
-            placeholder="Enter employee ID"
+            placeholder="Enter middle name (optional)"
+          />
+        </label>
+
+        <label>
+          Last Name:
+          <input
+            type="text"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+            placeholder="Enter last name"
             required
           />
         </label>

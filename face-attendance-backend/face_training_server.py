@@ -18,7 +18,7 @@ CORS(app)  # Enable CORS for React frontend
 # Configuration
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 BACKEND_ROOT = os.path.dirname(os.path.abspath(__file__))
-DATASET_DIR = os.path.join(PROJECT_ROOT, "Images")
+DATASET_DIR = os.path.join(PROJECT_ROOT, "StudentFaceData")
 ENCODINGS_DIR = os.path.join(BACKEND_ROOT, "data", "encodings")
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 

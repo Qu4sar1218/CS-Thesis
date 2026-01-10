@@ -14,9 +14,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 32px;
+    padding: 16px;
     position: relative;
     overflow: hidden;
+    max-width: 50vw;
+    max-height: 50vh;
 }
 
 .video-container::before {
@@ -253,16 +255,68 @@
 /* System Status Card */
 .system-status {
     background-color: transparent;
-    
+    padding: 20px 24px;
 }
 
 .system-status h2 {
     color: #0c4a6e;
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.status-grid.compact {
+    margin-bottom: 16px;
+}
+
+.status-grid.compact .status-item {
+    padding: 12px 16px;
+}
+
+/* Student Details Card */
+.student-details {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.student-details h2 {
+    color: #1e40af;
+}
+
+.student-info {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.student-main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.student-name {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e40af;
+    margin: 0;
+}
+
+.student-id {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 600;
+}
+
+.student-meta p {
+    margin: 4px 0;
+    font-size: 14px;
+    color: #374151;
+    font-weight: 600;
 }
 
 .status-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 16px;
     margin-bottom: 24px;
 }
