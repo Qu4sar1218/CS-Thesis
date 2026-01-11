@@ -465,3 +465,13 @@
         padding-top:80px;
     }
 }
+
+/* Day filter select styling */
+#day-filter {
+    color: white;
+}
+
+#day-filter option {
+    color: white;
+    background-color: rgba(0, 0, 0, 0.8);
+}

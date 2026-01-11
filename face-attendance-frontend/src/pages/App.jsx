@@ -5,6 +5,7 @@ import AdminDashboard from "./AdminDashboard.jsx";
 import AdminReceiptVerification from "./AdminReceiptVerification.jsx";
 import StudentReceiptSubmission from "./StudentReceiptSubmission.jsx";
 import TeacherDashboard from "./TeacherDashboard.jsx";
+import TeacherClassRoster from "./TeacherClassRoster.jsx";
 import StudentDashboard from "./StudentDashboard.jsx";
 import StatusPanel from "./StatusPanel.js";
 import EventManagement from "./EventManagement.jsx";
@@ -320,6 +321,10 @@ function App() {
   }
 
   if (role === "teacher") {
+    if (currentPage === "teacherClassRoster") {
+      return <TeacherClassRoster onBack={() => setCurrentPage("dashboard")} userInfo={userInfo} />;
+    }
+
     if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;
     return showStatusPanel ? (
       renderStatusPanel()
@@ -329,6 +334,7 @@ function App() {
         onTakeAttendance={() => activateFaceRecognition()}
         starting={isStarting}
         userInfo={userInfo}
+        onNavigate={(page) => setCurrentPage(page)}
       />
     );
   }

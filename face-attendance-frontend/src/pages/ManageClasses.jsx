@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import "../styles/ManageClasses.css";
 
 const API_BASE_URL = "http://localhost:8000";
@@ -31,13 +31,7 @@ export default function ManageClasses({ onBack }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
 
-  // Fetch classes and teachers from API
-  useEffect(() => {
-    fetchClasses();
-    fetchTeachers();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/classes`);
@@ -69,7 +63,19 @@ export default function ManageClasses({ onBack }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [teachers]);
+
+  // Fetch teachers from API
+  useEffect(() => {
+    fetchTeachers();
+  }, []);
+
+  // Fetch classes when teachers are loaded
+  useEffect(() => {
+    if (teachers.length > 0) {
+      fetchClasses();
+    }
+  }, [teachers, fetchClasses]);
 
   const fetchTeachers = async () => {
     try {

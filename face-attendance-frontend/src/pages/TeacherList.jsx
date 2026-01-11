@@ -8,38 +8,61 @@ export default function TeacherList({ onBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false) ;
   const [editForm, setEditForm] = useState({});
 
-  // Fetch teachers from API
+  const getDisplayDepartment = (dept) => {
+    if (dept === 'Both') return 'College & SHS';
+    return dept;
+  };
+
+  // Fetch teachers and classes from API
   useEffect(() => {
-    fetchTeachers();
+    fetchTeachersAndClasses();
   }, []);
 
-  const fetchTeachers = async () => {
+  const fetchTeachersAndClasses = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/teachers`);
-      if (!response.ok) {
+
+      // Fetch teachers
+      const teachersResponse = await fetch(`${API_BASE_URL}/teachers`);
+      if (!teachersResponse.ok) {
         throw new Error('Failed to fetch teachers');
       }
-      const data = await response.json();
+      const teachersData = await teachersResponse.json();
+
+      // Fetch classes
+      const classesResponse = await fetch(`${API_BASE_URL}/classes`);
+      if (!classesResponse.ok) {
+        throw new Error('Failed to fetch classes');
+      }
+      const classesData = await classesResponse.json();
+
       // Transform API data to match component expectations
-      const transformedTeachers = data.teachers.map(teacher => ({
-        id: teacher.teacher_id,
-        name: `${teacher.first_name} ${teacher.last_name}`,
-        subject: teacher.department, // Using department as subject
-        email: teacher.email,
-        _id: teacher._id
-      }));
+      const transformedTeachers = teachersData.teachers.map(teacher => {
+        // Find classes taught by this teacher
+        const teacherClasses = classesData.classes.filter(cls => cls.teacher_id === teacher.teacher_id);
+        const subjects = teacherClasses.map(cls => cls.class_name);
+
+        return {
+          id: teacher.teacher_id,
+          name: `${teacher.first_name} ${teacher.middle_name ? teacher.middle_name + ' ' : ''}${teacher.last_name}`,
+          subjects: subjects,
+          department: teacher.department,
+          email: teacher.email,
+          _id: teacher._id
+        };
+      });
       setTeachers(transformedTeachers);
       setError(null);
     } catch (err) {
       setError(err.message);
-      console.error('Error fetching teachers:', err);
+      console.error('Error fetching teachers and classes:', err);
     } finally {
       setLoading(false);
     }
@@ -47,9 +70,14 @@ export default function TeacherList({ onBack }) {
 
   const filteredTeachers = teachers.filter(t =>
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.subjects && t.subjects.some(subject => subject.toLowerCase().includes(searchTerm.toLowerCase()))) ||
+    t.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
     t.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const toggleDropdown = (teacherId) => {
+    setOpenDropdown(openDropdown === teacherId ? null : teacherId);
+  };
 
   const handleView = async (teacher) => {
     try {
@@ -76,6 +104,7 @@ export default function TeacherList({ onBack }) {
       setEditForm({
         teacher_id: data.teacher_id,
         first_name: data.first_name,
+        middle_name: data.middle_name,
         last_name: data.last_name,
         department: data.department,
         email: data.email
@@ -89,14 +118,14 @@ export default function TeacherList({ onBack }) {
   const handleSaveEdit = async () => {
     try {
       const updateData = {
-        teacher_id: editForm.id,
-        first_name: editForm.name.split(' ')[0] || editForm.name,
-        last_name: editForm.name.split(' ').slice(1).join(' ') || '',
-        department: editForm.subject,
-        email: editForm.email // Keep existing email if not editable
+        first_name: editForm.first_name,
+        middle_name: editForm.middle_name || null,
+        last_name: editForm.last_name,
+        department: editForm.department,
+        email: editForm.email
       };
 
-      const response = await fetch(`${API_BASE_URL}/teachers/${selectedTeacher.id}`, {
+      const response = await fetch(`${API_BASE_URL}/teachers/${selectedTeacher.teacher_id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +138,7 @@ export default function TeacherList({ onBack }) {
       if (response.ok) {
         setIsEditModalOpen(false);
         setSelectedTeacher(null);
-        fetchTeachers(); // Refresh the list
+        fetchTeachersAndClasses(); // Refresh the list
       } else {
         setError(`Failed to update teacher: ${result.detail || result.error}`);
       }
@@ -128,7 +157,7 @@ export default function TeacherList({ onBack }) {
       });
 
       if (response.ok) {
-        fetchTeachers(); // Refresh the list
+        fetchTeachersAndClasses(); // Refresh the list
       } else {
         const result = await response.json();
         setError(`Failed to delete teacher: ${result.detail || result.error}`);
@@ -167,7 +196,8 @@ export default function TeacherList({ onBack }) {
               <tr>
                 <th>Teacher ID</th>
                 <th>Name</th>
-                <th>Subject</th>
+                <th>Subjects</th>
+                <th>Department</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -176,7 +206,34 @@ export default function TeacherList({ onBack }) {
                 <tr key={teacher.id}>
                   <td>{teacher.id}</td>
                   <td>{teacher.name}</td>
-                  <td>{teacher.subject}</td>
+                  <td>
+                    {teacher.subjects && teacher.subjects.length > 0 ? (
+                      teacher.subjects.length === 1 ? (
+                        teacher.subjects[0]
+                      ) : (
+                        <div className="subjects-dropdown">
+                          <button
+                            className="dropdown-btn"
+                            onClick={() => toggleDropdown(teacher.id)}
+                          >
+                            {teacher.subjects.length} subjects ▼
+                          </button>
+                          {openDropdown === teacher.id && (
+                            <div className="dropdown-menu">
+                              {teacher.subjects.map((subject, index) => (
+                                <div key={index} className="dropdown-item">
+                                  {subject}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ) : (
+                      'None'
+                    )}
+                  </td>
+                  <td>{getDisplayDepartment(teacher.department)}</td>
                   <td>
                     <button className="action-btn view" onClick={() => handleView(teacher)}>👁️ View</button>
                     <button className="action-btn edit" onClick={() => handleEdit(teacher)}>✏️ Edit</button>
@@ -206,10 +263,16 @@ export default function TeacherList({ onBack }) {
               <strong>First Name:</strong> {selectedTeacher.first_name}
             </div>
             <div className="detail-row">
+              <strong>Middle Name:</strong> {selectedTeacher.middle_name || 'N/A'}
+            </div>
+            <div className="detail-row">
               <strong>Last Name:</strong> {selectedTeacher.last_name}
             </div>
             <div className="detail-row">
-              <strong>Department:</strong> {selectedTeacher.department}
+              <strong>Subjects:</strong> {selectedTeacher.subjects && selectedTeacher.subjects.length > 0 ? selectedTeacher.subjects.join(', ') : 'None'}
+            </div>
+            <div className="detail-row">
+              <strong>Department:</strong> {getDisplayDepartment(selectedTeacher.department)}
             </div>
             <div className="detail-row">
               <strong>Email:</strong> {selectedTeacher.email}
@@ -235,6 +298,14 @@ export default function TeacherList({ onBack }) {
                 />
               </div>
               <div className="form-group">
+                <label>Middle Name:</label>
+                <input
+                  type="text"
+                  value={editForm.middle_name}
+                  onChange={(e) => setEditForm({ ...editForm, middle_name: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
                 <label>Last Name:</label>
                 <input
                   type="text"
@@ -244,11 +315,16 @@ export default function TeacherList({ onBack }) {
               </div>
               <div className="form-group">
                 <label>Department:</label>
-                <input
-                  type="text"
+                <select
                   value={editForm.department}
                   onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
-                />
+                  required
+                >
+                  <option value="">Select Department</option>
+                  <option value="College">College</option>
+                  <option value="SHS">Senior High School (SHS)</option>
+                  <option value="Both">Both</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Email:</label>

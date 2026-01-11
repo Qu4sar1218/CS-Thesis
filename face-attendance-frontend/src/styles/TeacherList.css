@@ -55,7 +55,6 @@
   border-collapse: collapse;
   margin-bottom: 24px;
   border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -88,6 +87,57 @@
 
 .teacher-table tbody tr:hover {
   background: #f8f9fa;
+}
+
+/* Subjects Dropdown Styles */
+.subjects-dropdown {
+  position: relative;
+}
+
+.dropdown-btn {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.dropdown-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.dropdown-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 12px;
+  color: #374151;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: #f9fafb;
 }
 
 .teacher-list .action-btn {
@@ -240,7 +290,7 @@
 .teacher-list .btn-secondary:hover { background: #4b5563; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1); } }
+@keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 /* Responsive Design */
 @media (max-width: 768px) {

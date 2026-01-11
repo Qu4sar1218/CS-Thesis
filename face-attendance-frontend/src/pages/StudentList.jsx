@@ -89,7 +89,7 @@ export default function StudentList({ onBack }) {
         ...(editForm.section && { section: editForm.section })
       };
 
-      const response = await fetch(`${API_BASE_URL}/students/${selectedStudent._id}`, {
+      const response = await fetch(`${API_BASE_URL}/students/${selectedStudent.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

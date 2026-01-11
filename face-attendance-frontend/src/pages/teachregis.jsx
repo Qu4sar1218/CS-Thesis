@@ -40,6 +40,7 @@ export default function RegisterTeacher({ onBack }) {
         },
         body: JSON.stringify({
           first_name: firstName,
+          middle_name: formData.middleName || null,
           last_name: lastName,
           department: department,
           email: formData.email,
@@ -120,14 +121,17 @@ export default function RegisterTeacher({ onBack }) {
 
         <label>
           Department:
-          <input
-            type="text"
+          <select
             name="department"
             value={formData.department}
             onChange={handleChange}
-            placeholder="Enter department"
             required
-          />
+          >
+            <option value="">Select Department</option>
+            <option value="College">College</option>
+            <option value="SHS">Senior High School (SHS)</option>
+            <option value="Both">Both</option>
+          </select>
         </label>
 
         <label>

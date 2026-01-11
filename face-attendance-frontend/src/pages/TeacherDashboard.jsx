@@ -1,13 +1,64 @@
-import React, { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import '../styles/TeacherDashboard.css';
 
-export default function TeacherDashboard({ onLogout, onTakeAttendance, starting, userInfo }) {
+export default function TeacherDashboard({ onLogout, onTakeAttendance, starting, userInfo, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [teacherClasses, setTeacherClasses] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [showClassRoster, setShowClassRoster] = useState(false);
+
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
   const handleTakeAttendance = async () => {
     if (typeof onTakeAttendance === "function") {
       await onTakeAttendance();
     }
+  };
+
+  const fetchClasses = useCallback(async () => {
+    console.log("🔍 fetchClasses called with userInfo:", userInfo);
+    if (!userInfo?.user_id) {
+      console.error("❌ No teacher ID available in userInfo");
+      console.log("userInfo object:", userInfo);
+      return;
+    }
+
+    console.log(`📡 Fetching classes for teacher ID: ${userInfo.user_id}`);
+    setLoadingClasses(true);
+    try {
+      const url = `${BACKEND_URL}/classes/teacher/${userInfo.user_id}`;
+      console.log(`🌐 Making request to: ${url}`);
+      const response = await fetch(url);
+      console.log(`📥 Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Failed to fetch classes: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to fetch classes: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Received data:", data);
+      console.log(`📚 Found ${data.classes?.length || 0} classes`);
+      setTeacherClasses(data.classes || []);
+    } catch (error) {
+      console.error("💥 Error fetching classes:", error);
+      setTeacherClasses([]);
+    } finally {
+      setLoadingClasses(false);
+    }
+  }, [userInfo, BACKEND_URL]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, [fetchClasses]);
+
+  // eslint-disable-next-line no-unused-vars
+  const handleClassRoster = () => {
+    if (!showClassRoster) {
+      fetchClasses();
+    }
+    setShowClassRoster(!showClassRoster);
   };
 
   return (
@@ -67,7 +118,7 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
               {isOpen && <span className="nav-text">{starting ? "Starting…" : "Take Attendance"}</span>}
             </button>
 
-            <button className="nav-item">
+            <button className="nav-item" onClick={() => onNavigate("teacherClassRoster")}>
               <span className="nav-icon">👥</span>
               {isOpen && <span className="nav-text">Class Roster</span>}
             </button>
@@ -120,23 +171,27 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
         {/* Teacher-specific content */}
         <div className="teacher-overview">
           <div className="overview-card">
-            <h3>Today's Classes</h3>
+            <h3>My Subjects</h3>
             <div className="class-list">
-              <div className="class-item">
-                <span className="class-time">9:00 AM</span>
-                <span className="class-name">Mathematics - Grade 10A</span>
-                <span className="class-status">Attendance: 28/30</span>
-              </div>
-              <div className="class-item">
-                <span className="class-time">11:00 AM</span>
-                <span className="class-name">Physics - Grade 11B</span>
-                <span className="class-status">Attendance: Pending</span>
-              </div>
-              <div className="class-item">
-                <span className="class-time">2:00 PM</span>
-                <span className="class-name">Chemistry - Grade 12A</span>
-                <span className="class-status">Attendance: 25/25</span>
-              </div>
+              {loadingClasses ? (
+                <div className="loading-classes">Loading subjects...</div>
+              ) : teacherClasses.length === 0 ? (
+                <div className="no-classes">No subjects assigned yet.</div>
+              ) : (
+                teacherClasses.map((cls) => {
+                  const parts = cls.schedule.split(' ');
+                  const days = parts[0];
+                  const timeRange = parts.slice(1).join(' ');
+                  const [startTime, endTime] = timeRange.split('-');
+                  return (
+                    <div key={cls._id} className="class-item">
+                      <span className="class-time">{startTime} - {endTime}</span>
+                      <span className="class-name">{cls.class_name} ({cls.class_code})</span>
+                      <span className="class-status">{days} - {cls.room}</span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -225,6 +280,8 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
             </div>
           </div>
         </div>
+
+
       </main>
     </div>
   );

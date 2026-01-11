@@ -238,6 +238,7 @@ class Student(StudentBase):
 class TeacherBase(BaseModel):
     first_name: str
     last_name: str
+    middle_name: Optional[str] = None
     email: str
     department: str
     teacher_id: Optional[str] = None  # Auto-generated
@@ -926,6 +927,24 @@ async def get_classes():
     """Get all classes."""
     classes = []
     async for class_doc in db.classes.find():
+        class_doc["_id"] = str(class_doc["_id"])
+        classes.append(class_doc)
+    return {"classes": classes}
+
+@app.get("/classes/teacher/{teacher_id}")
+async def get_classes_by_teacher(teacher_id: str):
+    """Get all classes for a specific teacher."""
+    # First, try to find teacher by teacher_id
+    teacher = await db.teachers.find_one({"teacher_id": teacher_id})
+    if not teacher:
+        # If not found, try to find by email
+        teacher = await db.teachers.find_one({"email": teacher_id})
+        if not teacher:
+            # If still not found, return empty
+            return {"classes": []}
+    actual_teacher_id = teacher.get("teacher_id")
+    classes = []
+    async for class_doc in db.classes.find({"teacher_id": actual_teacher_id}):
         class_doc["_id"] = str(class_doc["_id"])
         classes.append(class_doc)
     return {"classes": classes}
