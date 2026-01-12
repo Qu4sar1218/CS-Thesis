@@ -1,19 +1,43 @@
-import React, { useState, useEffect, useCallback } from "react"; 
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "../styles/AdminReceiptVerification.css";
-//add filter for receipts per course 
+//add filter for receipts per course
 function AdminReceiptVerification({ onBack }) {
   const [receipts, setReceipts] = useState([]);
+  const [filteredReceipts, setFilteredReceipts] = useState([]);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [verifying, setVerifying] = useState(false);
   const [message, setMessage] = useState("");
+  const [filters, setFilters] = useState({
+    course: "",
+    year: "",
+    gradeLevel: ""
+  });
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
   const fetchReceipts = useCallback(async () => {
     try {
-      setReceipts((await axios.get(`${BACKEND_URL}/receipts`)).data.receipts || []);
+      const receiptsData = (await axios.get(`${BACKEND_URL}/receipts`)).data.receipts || [];
+      const studentsData = (await axios.get(`${BACKEND_URL}/students`)).data.students || [];
+
+      // Create a map of student_id to student data
+      const studentsMap = {};
+      studentsData.forEach(student => {
+        studentsMap[student.student_id] = student;
+      });
+
+      // Merge student data into receipts
+      const receiptsWithStudents = receiptsData.map(receipt => ({
+        ...receipt,
+        student_name: studentsMap[receipt.student_id] ?
+          `${studentsMap[receipt.student_id].first_name} ${studentsMap[receipt.student_id].last_name}` : 'Unknown',
+        student_course: studentsMap[receipt.student_id]?.course || 'Unknown',
+        student_year: studentsMap[receipt.student_id]?.year || 'Unknown'
+      }));
+
+      setReceipts(receiptsWithStudents);
     } catch (error) {
       console.error("Error fetching receipts:", error);
       setMessage("Failed to load receipts. Please try again.");
@@ -25,6 +49,25 @@ function AdminReceiptVerification({ onBack }) {
   useEffect(() => {
     fetchReceipts();
   }, [fetchReceipts]);
+
+  // Filter receipts based on filters
+  useEffect(() => {
+    let filtered = receipts;
+
+    if (filters.course) {
+      filtered = filtered.filter(receipt => receipt.student_course === filters.course);
+    }
+
+    if (filters.year) {
+      filtered = filtered.filter(receipt => receipt.student_year === filters.year);
+    }
+
+    if (filters.gradeLevel) {
+      filtered = filtered.filter(receipt => receipt.student_year === filters.gradeLevel);
+    }
+
+    setFilteredReceipts(filtered);
+  }, [receipts, filters]);
 
   const handleVerify = async (status) => {
     if (!selectedReceipt) return;
@@ -81,11 +124,44 @@ function AdminReceiptVerification({ onBack }) {
       )}
 
       <div className="verification-content">
+        <section className="filters-section">
+          <h3>Filter Receipts</h3>
+          <div className="filters">
+            <select
+              value={filters.course}
+              onChange={(e) => setFilters({...filters, course: e.target.value})}
+            >
+              <option value="">All Courses</option>
+              {[...new Set(receipts.map(r => r.student_course).filter(c => c !== 'Unknown'))].map(course => (
+                <option key={course} value={course}>{course}</option>
+              ))}
+            </select>
+            <select
+              value={filters.year}
+              onChange={(e) => setFilters({...filters, year: e.target.value})}
+            >
+              <option value="">All Years</option>
+              {[...new Set(receipts.map(r => r.student_year).filter(y => y !== 'Unknown'))].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <select
+              value={filters.gradeLevel}
+              onChange={(e) => setFilters({...filters, gradeLevel: e.target.value})}
+            >
+              <option value="">All Grade Levels</option>
+              {[...new Set(receipts.map(r => r.student_year).filter(y => y !== 'Unknown'))].map(grade => (
+                <option key={grade} value={grade}>{grade}</option>
+              ))}
+            </select>
+          </div>
+        </section>
+
         <section className="receipts-list">
-          <h2>Pending Receipts</h2>
-          {receipts.length > 0 ? (
+          <h2>Pending Receipts ({filteredReceipts.length})</h2>
+          {filteredReceipts.length > 0 ? (
             <div className="receipts-grid">
-              {receipts.map((receipt) => (
+              {filteredReceipts.map((receipt) => (
                 <div
                   key={receipt._id}
                   className={`receipt-card ${selectedReceipt && selectedReceipt._id === receipt._id ? "selected" : ""}`}
@@ -98,7 +174,9 @@ function AdminReceiptVerification({ onBack }) {
                     </span>
                   </div>
                   <div className="receipt-info">
+                    <p><strong>Student:</strong> {receipt.student_name}</p>
                     <p><strong>Student ID:</strong> {receipt.student_id}</p>
+                    <p><strong>Course:</strong> {receipt.student_course}</p>
                     <p><strong>Event ID:</strong> {receipt.event_id}</p>
                     <p><strong>Transaction:</strong> {receipt.transaction_id}</p>
                     <p><strong>Submitted:</strong> {new Date(receipt.submitted_at).toLocaleDateString()}</p>
@@ -108,7 +186,7 @@ function AdminReceiptVerification({ onBack }) {
             </div>
           ) : (
             <div className="empty-state">
-              <p>No receipts found.</p>
+              <p>No receipts found matching the filters.</p>
             </div>
           )}
         </section>
@@ -119,7 +197,10 @@ function AdminReceiptVerification({ onBack }) {
             <div className="detail-content">
               <div className="detail-info">
                 <p><strong>Receipt ID:</strong> {selectedReceipt._id}</p>
+                <p><strong>Student Name:</strong> {selectedReceipt.student_name}</p>
                 <p><strong>Student ID:</strong> {selectedReceipt.student_id}</p>
+                <p><strong>Course:</strong> {selectedReceipt.student_course}</p>
+                <p><strong>Year:</strong> {selectedReceipt.student_year}</p>
                 <p><strong>Event ID:</strong> {selectedReceipt.event_id}</p>
                 <p><strong>Transaction ID:</strong> {selectedReceipt.transaction_id}</p>
                 <p><strong>Status:</strong> {selectedReceipt.status}</p>

@@ -164,7 +164,7 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
       {/* Content */}
       <main className="teacher-main-content">
         <div className="content-header">
-          <h1>Welcome, Teacher{userInfo?.full_name && userInfo.full_name !== 'Teacher' ? ` ${userInfo.full_name}` : ''}</h1>
+          <h1>Welcome {userInfo?.first_name || userInfo?.last_name ? `, ${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() : ''}</h1>
           <p>Take attendance, review students, and manage classes.</p>
         </div>
 

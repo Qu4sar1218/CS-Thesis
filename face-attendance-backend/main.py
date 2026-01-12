@@ -256,6 +256,7 @@ class ClassBase(BaseModel):
     teacher_id: str
     schedule: str  # e.g., "MWF 9:00-10:00"
     room: str
+    courses: List[str] = []  # List of courses this class covers
 
 class ClassCreate(ClassBase):
     pass
@@ -703,8 +704,20 @@ async def login(user_credentials: dict):
         teacher = await db.teachers.find_one({"email": username})
         if teacher and verify_password(password, teacher.get("hashed_password", "")):
             access_token = create_access_token(data={"sub": username, "role": "teacher"})
-            full_name = f"{teacher.get('first_name', '')} {teacher.get('last_name', '')}".strip()
-            return {"access_token": access_token, "token_type": "bearer", "full_name": full_name, "user_id": teacher.get("teacher_id")}
+            first_name = teacher.get('first_name', '')
+            last_name = teacher.get('last_name', '')
+            logger.info(f"✅ Teacher login successful for {username}: first_name='{first_name}', last_name='{last_name}'")
+            return {"access_token": access_token, "token_type": "bearer", "first_name": first_name, "last_name": last_name, "user_id": teacher.get("teacher_id")}
+
+        # Check teachers collection by teacher_id (for teachers logging in with teacher_id)
+        if not '@' in username and username.isdigit() and len(username) == 6:
+            teacher = await db.teachers.find_one({"teacher_id": username})
+            if teacher and verify_password(password, teacher.get("hashed_password", "")):
+                access_token = create_access_token(data={"sub": username, "role": "teacher"})
+                first_name = teacher.get('first_name', '')
+                last_name = teacher.get('last_name', '')
+                logger.info(f"✅ Teacher login successful for {username}: first_name='{first_name}', last_name='{last_name}'")
+                return {"access_token": access_token, "token_type": "bearer", "first_name": first_name, "last_name": last_name, "user_id": teacher.get("teacher_id")}
     else:
         # Check students collection by student_id
         student = await db.students.find_one({"student_id": username})
@@ -717,8 +730,9 @@ async def login(user_credentials: dict):
         teacher = await db.teachers.find_one({"username": username})
         if teacher and verify_password(password, teacher.get("hashed_password", "")):
             access_token = create_access_token(data={"sub": username, "role": "teacher"})
-            full_name = f"{teacher.get('first_name', '')} {teacher.get('last_name', '')}".strip()
-            return {"access_token": access_token, "token_type": "bearer", "full_name": full_name}
+            first_name = teacher.get('first_name', '')
+            last_name = teacher.get('last_name', '')
+            return {"access_token": access_token, "token_type": "bearer", "first_name": first_name, "last_name": last_name}
 
         # Check users collection by username (for admin with username like 'admin')
         user = await db.users.find_one({"username": username})
@@ -921,6 +935,31 @@ async def create_class(class_data: ClassCreate):
 
     result = await db.classes.insert_one(class_data.dict())
     return {"message": "Class created successfully", "class_id": str(result.inserted_id)}
+
+@app.get("/courses")
+async def get_courses():
+    """Get all available courses and strands from database."""
+    courses_collection = db.courses
+
+    # Get all courses from database
+    courses = []
+    async for course in courses_collection.find().sort("level", 1).sort("code", 1):
+        courses.append({
+            "code": course["code"],
+            "name": course["name"],
+            "level": course["level"]
+        })
+
+    # Also include any additional courses from existing students (for backward compatibility)
+    async for student in db.students.find():
+        if student.get("course") and not any(c["code"] == student["course"] for c in courses):
+            courses.append({
+                "code": student["course"],
+                "name": student["course"],  # Use code as name for legacy courses
+                "level": "unknown"
+            })
+
+    return {"courses": courses}
 
 @app.get("/classes")
 async def get_classes():

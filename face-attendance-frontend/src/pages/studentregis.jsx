@@ -18,6 +18,7 @@ export default function StudentRegis({ onBack }) {
   });
 
   const [courseOptions, setCourseOptions] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
   const [message, setMessage] = useState("");
   const [studentId, setStudentId] = useState("");
   const [showWebcam, setShowWebcam] = useState(false);
@@ -273,16 +274,38 @@ export default function StudentRegis({ onBack }) {
     startWebcam();
   };
 
-  // Update course options based on year level
-  useEffect(() => {
-    if (formData.yearLevel === 'Grade 11' || formData.yearLevel === 'Grade 12') {
-      setCourseOptions(['STEM', 'GAS', 'ICT']);
-    } else if (formData.yearLevel.includes('Year College')) {
-      setCourseOptions(['BSIT', 'BSCS', 'BSENTREP', 'BSBA', 'BSED']);
-    } else {
-      setCourseOptions([]);
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/courses`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      const data = await response.json();
+      setAllCourses(data.courses); // Now contains objects with code, name, level
+    } catch (err) {
+      console.error('Error fetching courses:', err);
     }
-  }, [formData.yearLevel]);
+  };
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  // Update course options based on year level and fetched courses
+  useEffect(() => {
+    if (allCourses.length > 0) {
+      if (formData.yearLevel === 'Grade 11' || formData.yearLevel === 'Grade 12') {
+        // For SHS, filter strands by level
+        setCourseOptions(allCourses.filter(course => course.level === 'senior_high'));
+      } else if (formData.yearLevel.includes('Year College')) {
+        // For College, filter courses by level
+        setCourseOptions(allCourses.filter(course => course.level === 'college'));
+      } else {
+        setCourseOptions([]);
+      }
+    }
+  }, [formData.yearLevel, allCourses]);
 
   // Cleanup webcam on unmount
   useEffect(() => {
@@ -392,9 +415,9 @@ export default function StudentRegis({ onBack }) {
             disabled={!formData.yearLevel}
           >
             <option value="">Select Course/Strand</option>
-            {courseOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
+            {courseOptions.map((course) => (
+              <option key={course.code} value={course.code}>
+                {course.name}
               </option>
             ))}
           </select>

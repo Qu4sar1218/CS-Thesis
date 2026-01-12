@@ -1,2 +1,6 @@
-- [x] Fix day filter in TeacherClassRoster.jsx: Change to fixed dropdown (Monday-Saturday), update filter logic with day mapping
-- [x] Update course/strand filter: Show for all departments with dynamic label ('Course' for college, 'Strand' for SHS, 'Subject' for others)
+# TODO: Change Course Selector to Checkboxes in ManageClasses
+
+- [x] Replace multi-select dropdown with checkboxes in the "Add Class" form
+- [x] Replace multi-select dropdown with checkboxes in the "Edit Class" modal
+- [x] Update CSS styling for the new checkbox layout (if needed)
+- [x] Test the functionality to ensure multiple courses can be selected

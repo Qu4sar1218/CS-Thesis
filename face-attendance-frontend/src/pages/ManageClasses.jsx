@@ -13,6 +13,7 @@ export default function ManageClasses({ onBack }) {
   const [editTeacherSuggestions, setEditTeacherSuggestions] = useState([]);
   const [showEditTeacherSuggestions, setShowEditTeacherSuggestions] = useState(false);
 // have filter for courses and days of the week
+  const [courses, setCourses] = useState([]);
   const [newClass, setNewClass] = useState({
     name: "",
     teacher: "",
@@ -21,6 +22,7 @@ export default function ManageClasses({ onBack }) {
     day: "Mon",
     startTime: "08:00",
     endTime: "09:00",
+    courses: [],
   });
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
@@ -52,6 +54,7 @@ export default function ManageClasses({ onBack }) {
           day: cls.schedule.split(' ')[0] || 'Mon',
           startTime: cls.schedule.split(' ')[1]?.split('-')[0] || '09:00',
           endTime: cls.schedule.split(' ')[1]?.split('-')[1] || '10:00',
+          courses: cls.courses || [],
           _id: cls._id
         };
       });
@@ -65,9 +68,10 @@ export default function ManageClasses({ onBack }) {
     }
   }, [teachers]);
 
-  // Fetch teachers from API
+  // Fetch teachers and courses from API
   useEffect(() => {
     fetchTeachers();
+    fetchCourses();
   }, []);
 
   // Fetch classes when teachers are loaded
@@ -95,6 +99,19 @@ export default function ManageClasses({ onBack }) {
     }
   };
 
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/courses`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      const data = await response.json();
+      setCourses(data.courses);
+    } catch (err) {
+      console.error('Error fetching courses:', err);
+    }
+  };
+
   const dayOptions = [
     { label: "Monday", value: "Mon" },
     { label: "Tuesday", value: "Tue" },
@@ -115,7 +132,8 @@ export default function ManageClasses({ onBack }) {
           class_name: newClass.name,
           teacher_id: newClass.teacherId,
           schedule: `${newClass.day} ${newClass.startTime}-${newClass.endTime}`,
-          room: newClass.room
+          room: newClass.room,
+          courses: newClass.courses
         };
 
         const response = await fetch(`${API_BASE_URL}/classes`, {
@@ -129,10 +147,11 @@ export default function ManageClasses({ onBack }) {
         const result = await response.json();
 
         if (response.ok) {
-          setNewClass({ name: "", teacher: "", teacherId: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00" });
+          setNewClass({ name: "", teacher: "", teacherId: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
           fetchClasses(); // Refresh the list
         } else {
-          setError(`Failed to create class: ${result.detail || result.error}`);
+          const errorMsg = result.detail || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
+          setError(`Failed to create class: ${errorMsg}`);
         }
       } catch (error) {
         setError(`Error creating class: ${error.message}`);
@@ -184,6 +203,17 @@ export default function ManageClasses({ onBack }) {
     setShowEditTeacherSuggestions(false);
   };
 
+  const handleCourseChange = (courseCode, isChecked, isEdit = false) => {
+    const target = isEdit ? editForm : newClass;
+    const setTarget = isEdit ? setEditForm : setNewClass;
+    const currentCourses = target.courses || [];
+    if (isChecked) {
+      setTarget({ ...target, courses: [...currentCourses, courseCode] });
+    } else {
+      setTarget({ ...target, courses: currentCourses.filter(c => c !== courseCode) });
+    }
+  };
+
   const handleView = (cls) => {
     setSelectedClass(cls);
     setIsViewModalOpen(true);
@@ -191,7 +221,7 @@ export default function ManageClasses({ onBack }) {
 
   const handleEdit = (cls) => {
     setSelectedClass(cls);
-    setEditForm({ ...cls, teacher: cls.teacher, teacherId: cls.teacherId });
+    setEditForm({ ...cls, teacher: cls.teacher, teacherId: cls.teacherId, courses: cls.courses || [] });
     setIsEditModalOpen(true);
   };
 
@@ -202,7 +232,8 @@ export default function ManageClasses({ onBack }) {
         class_name: editForm.name,
         teacher_id: editForm.teacherId,
         schedule: `${editForm.day} ${editForm.startTime}-${editForm.endTime}`,
-        room: editForm.room
+        room: editForm.room,
+        courses: editForm.courses || []
       };
 
       const response = await fetch(`${API_BASE_URL}/classes/${selectedClass._id}`, {
@@ -220,7 +251,8 @@ export default function ManageClasses({ onBack }) {
         setSelectedClass(null);
         fetchClasses(); // Refresh the list
       } else {
-        setError(`Failed to update class: ${result.detail || result.error}`);
+        const errorMsg = result.detail || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
+        setError(`Failed to update class: ${errorMsg}`);
       }
     } catch (error) {
       setError(`Error updating class: ${error.message}`);
@@ -240,7 +272,8 @@ export default function ManageClasses({ onBack }) {
         fetchClasses(); // Refresh the list
       } else {
         const result = await response.json();
-        setError(`Failed to delete class: ${result.detail || result.error}`);
+        const errorMsg = result.detail || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
+        setError(`Failed to delete class: ${errorMsg}`);
       }
     } catch (error) {
       setError(`Error deleting class: ${error.message}`);
@@ -396,8 +429,29 @@ export default function ManageClasses({ onBack }) {
               value={newClass.endTime}
               onChange={(e) => setNewClass({ ...newClass, endTime: e.target.value })}
             />
+              <div className="course-selection">
+              <label>Courses:</label>
+              <div className="course-checkboxes">
+                {courses.map((course) => {
+                  const code = course.code || course;
+                  return (
+                    <label key={code} className="course-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={(newClass.courses || []).includes(code)}
+                        onChange={(e) => handleCourseChange(code, e.target.checked)}
+                      />
+                      {code}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <button className="primary" onClick={handleAddClass}>Add Class</button>
-            <button className="secondary" onClick={() => setIsAddFormOpen(false)}>Cancel</button>
+            <button className="secondary" onClick={() => {
+              setIsAddFormOpen(false);
+              setNewClass({ name: "", teacher: "", teacherId: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
+            }}>Cancel</button>
           </div>
         </div>
       )}
@@ -409,6 +463,7 @@ export default function ManageClasses({ onBack }) {
               <th>Class ID</th>
               <th>Class Name</th>
               <th>Teacher</th>
+              <th>Courses/Strands</th>
               <th>Students</th>
               <th>Room</th>
               <th>Schedule</th>
@@ -421,6 +476,7 @@ export default function ManageClasses({ onBack }) {
                 <td>{cls.id}</td>
                 <td>{cls.name}</td>
                 <td>{cls.teacher}</td>
+                <td>{(cls.courses || []).join(', ')}</td>
                 <td>{cls.students}</td>
                 <td>{cls.room}</td>
                 <td>{formatSchedule(cls)}</td>
@@ -456,6 +512,9 @@ export default function ManageClasses({ onBack }) {
             </div>
             <div className="detail-row">
               <strong>Teacher:</strong> {selectedClass.teacher}
+            </div>
+            <div className="detail-row">
+              <strong>Courses/Strands:</strong> {(selectedClass.courses || []).join(', ')}
             </div>
             <div className="detail-row">
               <strong>Students:</strong> {selectedClass.students}
@@ -548,6 +607,24 @@ export default function ManageClasses({ onBack }) {
                   value={editForm.endTime || '09:00'}
                   onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
                 />
+              </div>
+              <div className="form-group">
+                <label>Courses:</label>
+                <div className="course-checkboxes">
+                  {courses.map((course) => {
+                    const code = course.code || course;
+                    return (
+                      <label key={code} className="course-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={(editForm.courses || []).includes(code)}
+                          onChange={(e) => handleCourseChange(code, e.target.checked, true)}
+                        />
+                        {code}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </form>
             <div className="modal-actions">

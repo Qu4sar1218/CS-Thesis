@@ -51,32 +51,39 @@ function Login({ onLogin }) {
           let userInfo = { user_id: data.user_id || user_id, role };
           console.log("👤 Initial userInfo:", userInfo);
 
-          // Always fetch the actual full name from the database for proper personalization
-          try {
-            const fetchId = role === 'student' ? user_id : data.user_id; // For teachers, use teacher_id from response
-            console.log("🔍 Fetching user data for ID:", fetchId, "Role:", role);
-            const endpoint = role === 'student' ? `/students/${fetchId}` : `/teachers/${fetchId}`;
-            console.log("🌐 Fetch endpoint:", endpoint);
-            const userResponse = await fetch(`http://localhost:8000${endpoint}`, {
-              headers: {
-                'Authorization': `Bearer ${data.access_token}`,
-              },
-            });
-            console.log("📥 User fetch response status:", userResponse.status);
-            if (userResponse.ok) {
-              const userData = await userResponse.json();
-              console.log("📦 User data received:", userData);
-              userInfo.full_name = `${userData.first_name} ${userData.last_name}`.trim();
-            } else {
-              const errorText = await userResponse.text();
-              console.error("❌ User fetch failed:", userResponse.status, errorText);
+          // For teachers, backend returns first_name and last_name directly from database
+          if (role === 'teacher') {
+            userInfo.first_name = data.first_name || '';
+            userInfo.last_name = data.last_name || '';
+            userInfo.full_name = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+          } else {
+            // For students, fetch additional info from database
+            try {
+              const fetchId = user_id;
+              console.log("🔍 Fetching user data for ID:", fetchId, "Role:", role);
+              const endpoint = `/students/${fetchId}`;
+              console.log("🌐 Fetch endpoint:", endpoint);
+              const userResponse = await fetch(`http://localhost:8000${endpoint}`, {
+                headers: {
+                  'Authorization': `Bearer ${data.access_token}`,
+                },
+              });
+              console.log("📥 User fetch response status:", userResponse.status);
+              if (userResponse.ok) {
+                const userData = await userResponse.json();
+                console.log("📦 User data received:", userData);
+                userInfo.full_name = `${userData.first_name} ${userData.last_name}`.trim();
+              } else {
+                const errorText = await userResponse.text();
+                console.error("❌ User fetch failed:", userResponse.status, errorText);
+                // Fallback if fetch fails - use backend provided name or empty
+                userInfo.full_name = data.full_name || '';
+              }
+            } catch (error) {
+              console.error('💥 Error fetching user name:', error);
               // Fallback if fetch fails - use backend provided name or empty
               userInfo.full_name = data.full_name || '';
             }
-          } catch (error) {
-            console.error('💥 Error fetching user name:', error);
-            // Fallback if fetch fails - use backend provided name or empty
-            userInfo.full_name = data.full_name || '';
           }
 
           console.log("✅ Final userInfo:", userInfo);

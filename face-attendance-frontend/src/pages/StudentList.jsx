@@ -14,10 +14,14 @@ export default function StudentList({ onBack }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [coursesError, setCoursesError] = useState(null);
 
-  // Fetch students from API
+  // Fetch students and courses from API
   useEffect(() => {
     fetchStudents();
+    fetchCourses();
   }, []);
 
   const fetchStudents = async () => {
@@ -53,6 +57,31 @@ export default function StudentList({ onBack }) {
       console.error('Error fetching students:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      setCoursesLoading(true);
+      const response = await fetch(`${API_BASE_URL}/courses`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.courses || !Array.isArray(data.courses)) {
+        throw new Error('Invalid response format: expected {courses: [...]}');
+      }
+      setCourses(data.courses);
+      setCoursesError(null);
+    } catch (err) {
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setCoursesError('Network error: Unable to connect to the server. Please ensure the backend is running on http://localhost:8000');
+      } else {
+        setCoursesError(`Error fetching courses: ${err.message}`);
+      }
+      console.error('Error fetching courses:', err);
+    } finally {
+      setCoursesLoading(false);
     }
   };
 
@@ -160,49 +189,24 @@ export default function StudentList({ onBack }) {
     <div className="student-list">
       <h1>Student List</h1>
 
-      <div className="filter-buttons">
-        <button
-          className={`filter-btn ${selectedCourse === null ? 'active' : ''}`}
-          onClick={() => setSelectedCourse(null)}
+      <div className="filter-dropdown">
+        <label htmlFor="course-filter">Filter by Course:</label>
+        <select
+          id="course-filter"
+          value={selectedCourse || ""}
+          onChange={(e) => setSelectedCourse(e.target.value === "" ? null : e.target.value)}
+          className="course-select"
+          disabled={coursesLoading || coursesError}
         >
-          All
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'BSIT' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('BSIT')}
-        >
-          BSIT
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'BSCS' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('BSCS')}
-        >
-          BSCS
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'BSBA' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('BSBA')}
-        >
-          BSBA
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'STEM' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('STEM')}
-        >
-          STEM
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'GAS' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('GAS')}
-        >
-          GAS
-        </button>
-        <button
-          className={`filter-btn ${selectedCourse === 'ICT' ? 'active' : ''}`}
-          onClick={() => setSelectedCourse('ICT')}
-        >
-          ICT
-        </button>
+          <option value="">All Courses</option>
+          {courses.map((course) => (
+            <option key={course.code} value={course.code}>
+              {course.code} - {course.name}
+            </option>
+          ))}
+        </select>
+        {coursesLoading && <span className="loading-text">Loading courses...</span>}
+        {coursesError && <span className="error-text">{coursesError}</span>}
       </div>
 
       <div className="search-bar">

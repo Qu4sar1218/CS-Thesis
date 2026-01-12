@@ -108,7 +108,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
       {/* Content */}
       <main className="student-main-content">
         <div className="content-header">
-          <h1>Welcome, Student{userInfo?.full_name ? ` ${userInfo.full_name}` : ''}</h1>
+          <h1>Welcome, {userInfo?.full_name ? ` ${userInfo.full_name}` : ''}</h1>
           <p>View your attendance and schedule here.</p>
         </div>
 
