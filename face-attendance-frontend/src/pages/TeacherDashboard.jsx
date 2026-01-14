@@ -6,6 +6,8 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
   const [teacherClasses, setTeacherClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [showClassRoster, setShowClassRoster] = useState(false);
+  const [teacherName, setTeacherName] = useState('');
+
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -52,6 +54,51 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
   useEffect(() => {
     fetchClasses();
   }, [fetchClasses]);
+
+  useEffect(() => {
+    const fetchTeacherName = async () => {
+      console.log('🔍 fetchTeacherName called with userInfo:', userInfo);
+      if (!userInfo?.user_id) {
+        console.log('❌ No user_id in userInfo');
+        return;
+      }
+
+      console.log(`📡 Fetching teacher name for ID: ${userInfo.user_id}`);
+      try {
+        let url = `${BACKEND_URL}/teachers/${userInfo.user_id}`;
+        console.log(`🌐 Making request to: ${url}`);
+        let response = await fetch(url);
+        console.log(`📥 Response status: ${response.status}`);
+
+        if (!response.ok && userInfo.email) {
+          console.log(`🔄 Retrying with email: ${userInfo.email}`);
+          url = `${BACKEND_URL}/teachers/${userInfo.email}`;
+          console.log(`🌐 Making request to: ${url}`);
+          response = await fetch(url);
+          console.log(`📥 Response status: ${response.status}`);
+        }
+
+        if (response.ok) {
+          const teacherData = await response.json();
+          console.log('📦 Teacher data received:', teacherData);
+          const fullName = `${teacherData.first_name || teacherData.firstName || ''} ${teacherData.last_name || teacherData.lastName || ''}`.trim();
+          if (fullName) {
+            console.log(`✅ Setting teacher name to: "${fullName}"`);
+            setTeacherName(fullName);
+          } else {
+            console.log('⚠️ No full name available in teacher data');
+          }
+        } else {
+          const errorText = await response.text();
+          console.error(`❌ Failed to fetch teacher name: ${response.status} - ${errorText}`);
+        }
+      } catch (error) {
+        console.error('💥 Error fetching teacher name:', error);
+      }
+    };
+
+    fetchTeacherName();
+  }, [userInfo, BACKEND_URL]);
 
   // eslint-disable-next-line no-unused-vars
   const handleClassRoster = () => {
@@ -164,7 +211,7 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
       {/* Content */}
       <main className="teacher-main-content">
         <div className="content-header">
-          <h1>Welcome {userInfo?.first_name || userInfo?.last_name ? `, ${userInfo.first_name || ''} ${userInfo.last_name || ''}`.trim() : ''}</h1>
+          <h1>Welcome Teacher {teacherName ? teacherName : 'Teacher'}</h1>
           <p>Take attendance, review students, and manage classes.</p>
         </div>
 

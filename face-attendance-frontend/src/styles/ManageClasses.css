@@ -18,15 +18,16 @@
 .add-class-form {
   max-width: 1000px;
   margin: 0 auto 30px;
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
   padding: 35px;
   border-radius: 20px;
-  border: 3px solid #10b981;
-  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-glass);
 }
 
 .add-class-form h2 {
-  color: #047857;
+  color: var(--emerald-400);
   font-size: 24px;
   margin-bottom: 20px;
   font-weight: 600;
@@ -82,11 +83,12 @@
 .list-container {
   max-width: 1100px;
   margin: 0 auto;
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
   padding: 35px;
   border-radius: 20px;
-  border: 3px solid #10b981;
-  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-glass);
 }
 
 .classes-table {
@@ -224,15 +226,17 @@
 }
 
 .manage-classes .modal-content {
-  background: white;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
   padding: 30px;
   border-radius: 15px;
   max-width: 500px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-glass);
   animation: slideIn 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .manage-classes .modal-content h2 {
@@ -249,7 +253,7 @@
 }
 
 .manage-classes .detail-row strong {
-  color: #047857;
+  color: var(--emerald-400);
   font-weight: 600;
 }
 
@@ -272,17 +276,19 @@
 .manage-classes .form-group select {
   width: 100%;
   padding: 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.3s ease;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--white);
 }
 
 .manage-classes .form-group input:focus,
 .manage-classes .form-group select:focus {
   outline: none;
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  border-color: var(--emerald-500);
+  box-shadow: var(--shadow-focus);
 }
 
 .manage-classes .modal-actions {
@@ -392,10 +398,11 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
-  border: 1px solid #ddd;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-glass);
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
@@ -404,14 +411,14 @@
 .teacher-suggestion-item {
   padding: 10px 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .teacher-suggestion-item:hover {
-  background-color: #f8f9fa;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .teacher-suggestion-item:last-child {
@@ -420,12 +427,12 @@
 
 .teacher-name {
   font-weight: 500;
-  color: #333;
+  color: var(--white);
 }
 
 .teacher-id {
   font-size: 0.9em;
-  color: #666;
+  color: var(--slate-300);
   font-weight: 400;
 }
 
@@ -435,15 +442,16 @@
 }
 
 .course-checkboxes {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 10px;
-  border: 2px solid #a7f3d0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.05);
   min-height: 60px;
   align-items: center;
+  justify-items: center;
 }
 
 .course-checkbox {
@@ -451,15 +459,17 @@
   align-items: center;
   gap: 5px;
   font-size: 15px;
-  color: #1f2937;
+  color: var(--white);
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 5px;
   transition: background-color 0.3s ease;
+  flex: 0 0 120px;
+  justify-content: flex-start;
 }
 
 .course-checkbox:hover {
-  background-color: #f0fdf4;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .course-checkbox input[type="checkbox"] {

@@ -17,11 +17,18 @@ export default function StudentList({ onBack }) {
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [coursesError, setCoursesError] = useState(null);
+  const [sortBy, setSortBy] = useState("name");
+  const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [classesError, setClassesError] = useState(null);
+  const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [studentToEnroll, setStudentToEnroll] = useState(null);
 
-  // Fetch students and courses from API
+  // Fetch students, courses, and classes from API
   useEffect(() => {
     fetchStudents();
     fetchCourses();
+    fetchClasses();
   }, []);
 
   const fetchStudents = async () => {
@@ -85,13 +92,53 @@ export default function StudentList({ onBack }) {
     }
   };
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCourse = selectedCourse === null || student.course === selectedCourse;
-    return matchesSearch && matchesCourse;
-  });
+  const fetchClasses = async () => {
+    try {
+      setClassesLoading(true);
+      const response = await fetch(`${API_BASE_URL}/classes`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (!data.classes || !Array.isArray(data.classes)) {
+        throw new Error('Invalid response format: expected {classes: [...]}');
+      }
+      setClasses(data.classes);
+      setClassesError(null);
+    } catch (err) {
+      if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+        setClassesError('Network error: Unable to connect to the server. Please ensure the backend is running on http://localhost:8000');
+      } else {
+        setClassesError(`Error fetching classes: ${err.message}`);
+      }
+      console.error('Error fetching classes:', err);
+    } finally {
+      setClassesLoading(false);
+    }
+  };
+
+  const filteredStudents = students
+    .filter(student => {
+      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        student.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCourse = selectedCourse === null || student.course === selectedCourse;
+      return matchesSearch && matchesCourse;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "course":
+          return a.course.localeCompare(b.course);
+        case "year":
+          return a.year.localeCompare(b.year);
+        case "id":
+          return a.id.localeCompare(b.id);
+        default:
+          return 0;
+      }
+    });
 
   const handleView = (student) => {
     setSelectedStudent(student);
@@ -160,10 +207,42 @@ export default function StudentList({ onBack }) {
     }
   };
 
+  const handleEnroll = (student) => {
+    setStudentToEnroll(student);
+    setIsEnrollModalOpen(true);
+  };
+
+  const handleEnrollStudent = async (classId) => {
+    if (!studentToEnroll) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/classes/${classId}/enroll`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ student_id: studentToEnroll.id }),
+      });
+
+      if (response.ok) {
+        alert(`Student ${studentToEnroll.name} enrolled successfully!`);
+        setIsEnrollModalOpen(false);
+        setStudentToEnroll(null);
+      } else {
+        const result = await response.json();
+        setError(`Failed to enroll student: ${result.detail || result.error}`);
+      }
+    } catch (error) {
+      setError(`Error enrolling student: ${error.message}`);
+    }
+  };
+
   const closeModals = () => {
     setIsViewModalOpen(false);
     setIsEditModalOpen(false);
+    setIsEnrollModalOpen(false);
     setSelectedStudent(null);
+    setStudentToEnroll(null);
   };
 
   if (loading) {
@@ -187,82 +266,145 @@ export default function StudentList({ onBack }) {
 
   return (
     <div className="student-list">
-      <h1>Student List</h1>
+      {/* Breadcrumbs */}
+      <nav className="breadcrumbs">
+        <span>Dashboard</span>
+        <span className="breadcrumb-separator">/</span>
+        <span>Students</span>
+        <span className="breadcrumb-separator">/</span>
+        <span className="breadcrumb-current">List</span>
+      </nav>
 
-      <div className="filter-dropdown">
-        <label htmlFor="course-filter">Filter by Course:</label>
-        <select
-          id="course-filter"
-          value={selectedCourse || ""}
-          onChange={(e) => setSelectedCourse(e.target.value === "" ? null : e.target.value)}
-          className="course-select"
-          disabled={coursesLoading || coursesError}
-        >
-          <option value="">All Courses</option>
-          {courses.map((course) => (
-            <option key={course.code} value={course.code}>
-              {course.code} - {course.name}
-            </option>
-          ))}
-        </select>
-        {coursesLoading && <span className="loading-text">Loading courses...</span>}
-        {coursesError && <span className="error-text">{coursesError}</span>}
+      <h1>Student Management</h1>
+
+      {/* Metric Header */}
+      <div className="metric-header">
+        <div className="metric-card">
+          <div className="metric-icon">👥</div>
+          <div className="metric-content">
+            <div className="metric-value">{filteredStudents.length}</div>
+            <div className="metric-label">Total Students</div>
+          </div>
+        </div>
       </div>
 
-      <div className="search-bar">
-        <input
-          type="text"
-          placeholder="Search by name, course, or ID..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+      {/* Controls Bar */}
+      <div className="controls-bar">
+        <div className="search-section">
+          <div className="search-wrapper">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by name, course, or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+        </div>
+
+        <div className="filters-section">
+          <div className="filter-group">
+            <label htmlFor="course-filter">Course:</label>
+            <select
+              id="course-filter"
+              value={selectedCourse || ""}
+              onChange={(e) => setSelectedCourse(e.target.value === "" ? null : e.target.value)}
+              className="filter-select"
+              disabled={coursesLoading || coursesError}
+            >
+              <option value="">All Courses</option>
+              {courses.map((course) => (
+                <option key={course.code} value={course.code}>
+                  {course.code} - {course.name}
+                </option>
+              ))}
+            </select>
+            {coursesLoading && <span className="loading-text">Loading...</span>}
+            {coursesError && <span className="error-text">{coursesError}</span>}
+          </div>
+
+          <div className="filter-group">
+            <label htmlFor="sort-filter">Sort by:</label>
+            <select
+              id="sort-filter"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="filter-select"
+            >
+              <option value="name">Name</option>
+              <option value="course">Course</option>
+              <option value="year">Year Level</option>
+              <option value="id">Student ID</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <div className="list-container">
-        <table className="student-table">
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Course</th>
-              <th>Year Level</th>
-              <th>Section</th>
-              <th>Email</th>
-              <th>Contact</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStudents.map((student, index) => (
-              <tr key={student.id} className={index % 2 === 0 ? 'even-row' : 'odd-row'}>
-                <td>STU {student.id}</td>
-                <td>{student.name}</td>
-                <td>{student.course}</td>
-                <td>{student.year}</td>
-                <td>{student.section}</td>
-                <td>{student.email}</td>
-                <td>{student.contact}</td>
-                <td>
-                  <button className="action-btn view" onClick={() => handleView(student)}>
-                    👁️ View
-                  </button>
-                  <button className="action-btn edit" onClick={() => handleEdit(student)}>
-                    ✏️ Edit
-                  </button>
-                  <button className="action-btn delete" onClick={() => handleDelete(student)}>
-                    🗑️ Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Student Cards Grid */}
+      <div className="students-grid">
+        {filteredStudents.map((student) => (
+          <div key={student.id} className="student-card">
+            <div className="student-header">
+              <div className="student-avatar">
+                <span className="avatar-icon">👤</span>
+              </div>
+              <div className="student-basic-info">
+                <h3 className="student-name">{student.name}</h3>
+                <p className="student-id">STU {student.id}</p>
+              </div>
+            </div>
+
+            <div className="student-details">
+              <div className="detail-row">
+                <span className="detail-label">Course:</span>
+                <span className="detail-value">{student.course}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Year:</span>
+                <span className="detail-value">{student.year}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Section:</span>
+                <span className="detail-value">{student.section || <span className="muted-placeholder">Not assigned</span>}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Email:</span>
+                <span className="detail-value">{student.email}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Contact:</span>
+                <span className="detail-value">{student.contact || <span className="muted-placeholder">Not provided</span>}</span>
+              </div>
+            </div>
+
+            <div className="student-actions">
+              <button className="action-btn view" onClick={() => handleView(student)}>
+                <span className="btn-icon">👁️</span>
+                <span className="btn-text">View</span>
+              </button>
+              <button className="action-btn enroll" onClick={() => handleEnroll(student)}>
+                <span className="btn-icon">📝</span>
+                <span className="btn-text">Enroll</span>
+              </button>
+              <button className="action-btn edit" onClick={() => handleEdit(student)}>
+                <span className="btn-icon">✏️</span>
+                <span className="btn-text">Edit</span>
+              </button>
+              <button className="action-btn delete" onClick={() => handleDelete(student)}>
+                <span className="btn-icon">🗑️</span>
+                <span className="btn-text">Delete</span>
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <div className="teacher-list-form-buttons">
-        <button type="button" className="teacher-list-secondary" onClick={onBack} style={{ padding: '8px 16px', fontSize: '13px', marginTop: '10px' }}>
-          Back
+      {/* Back Button */}
+      <div className="page-actions">
+        <button type="button" className="back-btn" onClick={onBack}>
+          <span className="btn-icon">←</span>
+          <span className="btn-text">Back to Dashboard</span>
         </button>
       </div>
 
@@ -350,6 +492,41 @@ export default function StudentList({ onBack }) {
             </form>
             <div className="modal-actions">
               <button className="btn-primary" onClick={handleSaveEdit}>Save</button>
+              <button className="btn-secondary" onClick={closeModals}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enroll Modal */}
+      {isEnrollModalOpen && studentToEnroll && (
+        <div className="modal-overlay" onClick={closeModals}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Enroll Student</h2>
+            <p>Enroll {studentToEnroll.name} (ID: {studentToEnroll.id}) in a class:</p>
+            <div className="classes-list">
+              {classesLoading ? (
+                <div>Loading classes...</div>
+              ) : classesError ? (
+                <div className="error">Error loading classes: {classesError}</div>
+              ) : (
+                classes.map((cls) => (
+                  <div key={cls._id} className="class-item" style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
+                    <div><strong>{cls.class_name}</strong> ({cls.class_code})</div>
+                    <div>Teacher: {cls.teacher_id}</div>
+                    <div>Room: {cls.room}</div>
+                    <button
+                      className="btn-primary"
+                      onClick={() => handleEnrollStudent(cls._id)}
+                      style={{ marginTop: '5px' }}
+                    >
+                      Enroll in this class
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="modal-actions">
               <button className="btn-secondary" onClick={closeModals}>Cancel</button>
             </div>
           </div>

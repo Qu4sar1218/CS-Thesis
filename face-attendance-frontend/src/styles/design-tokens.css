@@ -3,8 +3,8 @@
    visually align with the Login design.
 */
 :root {
-  /* Emerald palette (from Login.css) */
-  --emerald-50: #f0fdf4;
+  /* Emerald Color Palette (matching Login) */
+  --emerald-50: #fdf0f0;
   --emerald-100: #dcfce7;
   --emerald-200: #d1fae5;
   --emerald-300: #a7f3d0;
@@ -12,18 +12,45 @@
   --emerald-600: #059669;
   --emerald-700: #047857;
 
+  /* Neutral Colors (matching Login) */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
   --gray-400: #9ca3af;
   --gray-500: #6b7280;
+  --gray-600: #4b5563;
   --gray-700: #374151;
-  --gray-900: #065f46;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
 
   --white: #ffffff;
 
-  --shadow-card: 0 10px 40px rgba(16, 185, 129, 0.12);
-  --shadow-button: 0 6px 22px rgba(6, 179, 106, 0.12);
-  --shadow-focus: 0 6px 18px rgba(16,185,129,0.08);
+  /* Dark Mode Colors */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+
+  /* Action colors */
+  --primary-emerald: var(--emerald-500);
+  --secondary-emerald: var(--emerald-600);
+  --warning-yellow: #f59e0b;
+  --danger-red: #ef4444;
+
+  /* Shadows (matching Login) */
+  --shadow-card: 0 10px 40px rgba(16, 185, 129, 0.15);
+  --shadow-card-hover: 0 15px 50px rgba(16, 185, 129, 0.2);
+  --shadow-button: 0 4px 14px rgba(16, 185, 129, 0.3);
+  --shadow-button-hover: 0 6px 20px rgba(16, 185, 129, 0.4);
+  --shadow-focus: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.37);
 }
 
 /* Base typography and smoothing */
@@ -66,9 +93,14 @@ button:hover:not(:disabled),
 
 /* Primary/secondary helpers */
 .btn-primary { background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600)); }
-.btn-secondary { background: #f1f5f9; color: var(--gray-900); box-shadow: 0 4px 12px rgba(2,6,23,0.06); }
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
 
-/* Inputs: unify look across pages */
+/* Inputs: unify look across pages (dark theme) */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -76,11 +108,11 @@ select,
 textarea,
 .input-field {
   width: 100%;
-  border: 1.5px solid var(--emerald-200);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  background: var(--gray-50);
+  background: rgba(255, 255, 255, 0.05);
   font-size: 15px;
-  color: var(--gray-900);
+  color: var(--white);
   transition: box-shadow 160ms ease, border-color 160ms ease;
 }
 
@@ -123,10 +155,9 @@ input:focus, textarea:focus, select:focus, .input-field:focus {
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
-/* Dashboard background */
+/* Dashboard background (matching Login dark mode) */
 :root {
   --dashboard-bg: radial-gradient(1200px 600px at 20% -10%, #064e3b 20%, rgba(6, 78, 59, 0) 60%),
                                   radial-gradient(900px 500px at 120% 10%, #065f46 20%, rgba(6, 95, 70, 0) 60%),
                                   linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-                     
 }

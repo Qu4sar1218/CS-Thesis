@@ -159,13 +159,78 @@ function App() {
 
   // Attendance mode screen
   const AttendanceMode = () => {
-    const subjects = [
+    const [teacherSubjects, setTeacherSubjects] = useState([]);
+    const [loadingSubjects, setLoadingSubjects] = useState(false);
+
+    const subjects = role === "teacher" ? teacherSubjects : [
       { id: "math101", name: "Mathematics 101", weekday: 1 },
       { id: "eng201", name: "English 201", weekday: 2 },
       { id: "cs301", name: "Computer Science 301", weekday: 3 },
       { id: "phy110", name: "Physics 110", weekday: 4 },
       { id: "hist210", name: "History 210", weekday: 5 },
     ];
+
+    const parseWeekdayFromSchedule = (schedule) => {
+      if (!schedule) return 1;
+
+      // Extract the day part from schedule (e.g., "MWF 9:00-10:00" -> "MWF")
+      const dayPart = schedule.split(' ')[0];
+
+      // Map day abbreviations to weekday numbers (0=Sunday, 1=Monday, etc.)
+      const dayMap = {
+        'Su': 0, 'Sun': 0, 'Sunday': 0,
+        'M': 1, 'Mon': 1, 'Monday': 1,
+        'T': 2, 'Tue': 2, 'Tuesday': 2,
+        'W': 3, 'Wed': 3, 'Wednesday': 3,
+        'Th': 4, 'Thu': 4, 'Thursday': 4, 'R': 4,
+        'F': 5, 'Fri': 5, 'Friday': 5,
+        'S': 6, 'Sat': 6, 'Saturday': 6
+      };
+
+      // If it's a single day, return its number
+      if (dayMap[dayPart]) {
+        return dayMap[dayPart];
+      }
+
+      // If it's multiple days (like "MWF"), take the first day
+      const firstChar = dayPart.charAt(0);
+      if (dayMap[firstChar]) {
+        return dayMap[firstChar];
+      }
+
+      // Default to Monday if parsing fails
+      return 1;
+    };
+
+    useEffect(() => {
+      if (role === "teacher" && panelMode === "class" && userInfo?.user_id) {
+        const fetchTeacherSubjects = async () => {
+          setLoadingSubjects(true);
+          try {
+            const response = await fetch(`${BACKEND_URL}/classes/teacher/${userInfo.user_id}`);
+            if (response.ok) {
+              const data = await response.json();
+              const subjectsFromClasses = data.classes.map(cls => ({
+                id: cls.class_code,
+                name: cls.class_name,
+                weekday: parseWeekdayFromSchedule(cls.schedule)
+              }));
+              setTeacherSubjects(subjectsFromClasses);
+            }
+          } catch (error) {
+            console.error("Error fetching teacher subjects:", error);
+          } finally {
+            setLoadingSubjects(false);
+          }
+        };
+        fetchTeacherSubjects();
+      }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const getDayName = (weekday) => {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      return days[weekday] || 'Unknown';
+    };
 
     const today = new Date().getDay();
     const isToday = (s) => s.weekday === today;
@@ -181,26 +246,30 @@ function App() {
               <p className="section-subtle">
                 Choose a subject to start taking attendance.
               </p>
-              <div className="subjects-grid mt-16">
-                {subjects.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedSubject(s);
-                      setShowAttendanceMode(false);
-                      setShowStatusPanel(true);
-                    }}
-                    className={`btn subject-card ${
-                      isToday(s) ? "subject-today" : ""
-                    }`}
-                  >
-                    <div className="subject-name">
-                      {s.name} {isToday(s) ? "• Today" : ""}
-                    </div>
-                    <div className="subject-meta">Weekday: {s.weekday}</div>
-                  </button>
-                ))}
-              </div>
+              {role === "teacher" && loadingSubjects ? (
+                <div className="loading-subjects">Loading your subjects...</div>
+              ) : (
+                <div className="subjects-grid mt-16">
+                  {subjects.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        setSelectedSubject(s);
+                        setShowAttendanceMode(false);
+                        setShowStatusPanel(true);
+                      }}
+                      className={`btn subject-card ${
+                        isToday(s) ? "subject-today" : ""
+                      }`}
+                    >
+                      <div className="subject-name">
+                        {s.name} {isToday(s) ? "• Today" : ""}
+                      </div>
+                      <div className="subject-meta">{getDayName(s.weekday)}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="toolbar">
                 <button
                   className="btn btn-secondary"

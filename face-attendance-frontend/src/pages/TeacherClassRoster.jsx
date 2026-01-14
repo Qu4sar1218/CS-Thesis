@@ -7,6 +7,11 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
   const [dayFilter, setDayFilter] = useState("");
   const [courseFilter, setCourseFilter] = useState("");
   const [teacherData, setTeacherData] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [enrolledStudents, setEnrolledStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [courseFilterStudents, setCourseFilterStudents] = useState("");
+  const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
 
   const dayOptions = [
     { value: "", label: "All Days" },
@@ -70,6 +75,51 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
       setLoadingClasses(false);
     }
   }, [userInfo?.user_id, BACKEND_URL]);
+
+  const fetchEnrolledStudents = useCallback(async (classId) => {
+    setLoadingStudents(true);
+    try {
+      // First get the class details to get enrolled student IDs
+      const classResponse = await fetch(`${BACKEND_URL}/classes/${classId}`);
+      if (!classResponse.ok) {
+        throw new Error(`Failed to fetch class details: ${classResponse.status}`);
+      }
+      const classData = await classResponse.json();
+
+      // Get student details for enrolled students
+      const enrolledStudentIds = classData.enrolled_students || [];
+      const studentPromises = enrolledStudentIds.map(studentId =>
+        fetch(`${BACKEND_URL}/students/${studentId}`).then(res => res.ok ? res.json() : null)
+      );
+
+      const studentResults = await Promise.all(studentPromises);
+      const validStudents = studentResults.filter(student => student !== null);
+
+      setEnrolledStudents(validStudents);
+    } catch (error) {
+      console.error("Error fetching enrolled students:", error);
+      setEnrolledStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, [BACKEND_URL]);
+
+  const handleClassClick = (cls) => {
+    setSelectedClass(cls);
+    fetchEnrolledStudents(cls._id);
+    setIsStudentModalOpen(true);
+  };
+
+  const handleBackToClasses = () => {
+    setSelectedClass(null);
+    setEnrolledStudents([]);
+    setCourseFilterStudents("");
+  };
+
+  const closeStudentModal = () => {
+    setIsStudentModalOpen(false);
+    handleBackToClasses();
+  };
 
   useEffect(() => {
     fetchClasses();
@@ -177,6 +227,7 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
                     transition: 'transform 0.2s',
                     cursor: 'pointer'
                   }}
+                  onClick={() => handleClassClick(cls)}
                   onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                   >
@@ -187,6 +238,27 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
                       <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0', fontSize: '14px' }}>
                         {cls.class_code}
                       </p>
+                      {cls.courses && cls.courses.length > 0 && (
+                        <div style={{ marginTop: '10px' }}>
+                          <p style={{ color: 'rgba(255,255,255,0.8)', margin: '0 0 5px 0', fontSize: '12px', fontWeight: '500' }}>
+                            {teacherData?.department?.toLowerCase().includes('college') ? 'Courses:' : teacherData?.department?.toLowerCase().includes('shs') ? 'Strands:' : 'Courses/Strands:'}
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                            {cls.courses.map((course, index) => (
+                              <span key={index} style={{
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                color: '#10b981',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: '500'
+                              }}>
+                                {course}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="card-details" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       <div className="detail-item" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -209,12 +281,103 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
           )}
         </div>
 
+
+
         <div className="manage-classes-form-buttons">
           <button type="button" className="manage-classes-secondary" onClick={onBack} style={{ padding: '8px 16px', fontSize: '13px', marginTop: '20px' }}>
             Back to Dashboard
           </button>
         </div>
       </main>
+
+      {/* Student Modal */}
+      {isStudentModalOpen && selectedClass && (
+        <div className="modal-overlay" onClick={closeStudentModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="content-header" style={{ marginBottom: '20px' }}>
+              <h2>Students in {selectedClass.class_name}</h2>
+              <p>View enrolled students filtered by courses/strands.</p>
+            </div>
+
+            {/* Course/Strand Filter for Students */}
+            {selectedClass.courses && selectedClass.courses.length > 0 && (
+              <div className="filters-section" style={{ marginBottom: '20px' }}>
+                <div className="filter-group">
+                  <label htmlFor="course-filter-students" style={{ color: 'white', marginRight: '10px' }}>
+                    Filter by {teacherData?.department?.toLowerCase().includes('college') ? 'Course' : teacherData?.department?.toLowerCase().includes('shs') ? 'Strand' : 'Course/Strand'}:
+                  </label>
+                  <select
+                    id="course-filter-students"
+                    value={courseFilterStudents}
+                    onChange={(e) => setCourseFilterStudents(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'white'
+                    }}
+                  >
+                    <option value="">All {teacherData?.department?.toLowerCase().includes('college') ? 'Courses' : teacherData?.department?.toLowerCase().includes('shs') ? 'Strands' : 'Courses/Strands'}</option>
+                    {selectedClass.courses.map((course, index) => (
+                      <option key={index} value={course}>{course}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="students-list">
+              {loadingStudents ? (
+                <div className="loading-classes">Loading students...</div>
+              ) : enrolledStudents.length === 0 ? (
+                <div className="no-classes">No students enrolled in this class yet.</div>
+              ) : (
+                <div className="students-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+                  {enrolledStudents
+                    .filter(student => !courseFilterStudents || (student.course && student.course.trim().toLowerCase().includes(courseFilterStudents.trim().toLowerCase())))
+                    .map((student) => (
+                      <div key={student.student_id} className="student-card" style={{
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px',
+                        padding: '15px',
+                        backdropFilter: 'blur(10px)'
+                      }}>
+                        <div className="student-header" style={{ marginBottom: '10px' }}>
+                          <h4 style={{ color: '#10b981', margin: '0 0 5px 0', fontSize: '16px', fontWeight: '600' }}>
+                            {student.first_name} {student.last_name}
+                          </h4>
+                          <p style={{ color: 'rgba(255,255,255,0.7)', margin: '0', fontSize: '12px' }}>
+                            ID: {student.student_id}
+                          </p>
+                        </div>
+                        <div className="student-details" style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <div className="detail-item" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                              {teacherData?.department?.toLowerCase().includes('college') ? 'Course:' : teacherData?.department?.toLowerCase().includes('shs') ? 'Strand:' : 'Course/Strand:'}
+                            </span>
+                            <span style={{ color: 'white', fontWeight: '500', fontSize: '12px' }}>{student.course}</span>
+                          </div>
+                          <div className="detail-item" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Year:</span>
+                            <span style={{ color: 'white', fontWeight: '500', fontSize: '12px' }}>{student.year}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            <div className="manage-classes-form-buttons" style={{ marginTop: '20px' }}>
+              <button type="button" className="manage-classes-secondary" onClick={closeStudentModal} style={{ padding: '8px 16px', fontSize: '13px' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

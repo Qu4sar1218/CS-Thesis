@@ -898,8 +898,8 @@ async def get_teachers():
 
 @app.get("/teachers/{teacher_id}")
 async def get_teacher(teacher_id: str):
-    """Get teacher by ID."""
-    teacher = await db.teachers.find_one({"teacher_id": teacher_id})
+    """Get teacher by ID or email."""
+    teacher = await db.teachers.find_one({"$or": [{"teacher_id": teacher_id}, {"email": teacher_id}]})
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
     teacher["_id"] = str(teacher["_id"])

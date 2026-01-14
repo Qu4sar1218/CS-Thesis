@@ -18,6 +18,7 @@ export default function ManageClasses({ onBack }) {
     name: "",
     teacher: "",
     teacherId: "",
+    teacherDepartment: "",
     room: "",
     day: "Mon",
     startTime: "08:00",
@@ -147,7 +148,7 @@ export default function ManageClasses({ onBack }) {
         const result = await response.json();
 
         if (response.ok) {
-          setNewClass({ name: "", teacher: "", teacherId: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
+          setNewClass({ name: "", teacher: "", teacherId: "", teacherDepartment: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
           fetchClasses(); // Refresh the list
         } else {
           const errorMsg = result.detail || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
@@ -177,7 +178,10 @@ export default function ManageClasses({ onBack }) {
   };
 
   const handleTeacherSelect = (teacher) => {
-    setNewClass({ ...newClass, teacher: teacher.name, teacherId: teacher.id });
+    const normalizedDepartment = teacher.department === "College" ? "college" :
+                                teacher.department === "SHS" ? "senior_high" :
+                                teacher.department.toLowerCase();
+    setNewClass({ ...newClass, teacher: teacher.name, teacherId: teacher.id, teacherDepartment: normalizedDepartment });
     setShowTeacherSuggestions(false);
   };
 
@@ -199,7 +203,15 @@ export default function ManageClasses({ onBack }) {
   };
 
   const handleEditTeacherSelect = (teacher) => {
-    setEditForm({ ...editForm, teacher: teacher.name, teacherId: teacher.id });
+    const newDepartment = teacher.department === "College" ? "college" :
+                         teacher.department === "SHS" ? "senior_high" :
+                         teacher.department.toLowerCase();
+    const allowedCourses = (editForm.courses || []).filter(courseCode => {
+      const course = courses.find(c => (c.code || c) === courseCode);
+      const level = course ? (course.level || "unknown") : "unknown";
+      return !newDepartment || newDepartment === "both" || newDepartment === level;
+    });
+    setEditForm({ ...editForm, teacher: teacher.name, teacherId: teacher.id, teacherDepartment: newDepartment, courses: allowedCourses });
     setShowEditTeacherSuggestions(false);
   };
 
@@ -221,7 +233,17 @@ export default function ManageClasses({ onBack }) {
 
   const handleEdit = (cls) => {
     setSelectedClass(cls);
-    setEditForm({ ...cls, teacher: cls.teacher, teacherId: cls.teacherId, courses: cls.courses || [] });
+    const teacher = teachers.find(t => t.id === cls.teacherId);
+    const rawDepartment = teacher ? teacher.department : "";
+    const teacherDepartment = rawDepartment === "College" ? "college" :
+                             rawDepartment === "SHS" ? "senior_high" :
+                             rawDepartment.toLowerCase();
+    const allowedCourses = (cls.courses || []).filter(courseCode => {
+      const course = courses.find(c => (c.code || c) === courseCode);
+      const level = course ? (course.level || "unknown") : "unknown";
+      return !teacherDepartment || teacherDepartment === "both" || teacherDepartment === level;
+    });
+    setEditForm({ ...cls, teacher: cls.teacher, teacherId: cls.teacherId, teacherDepartment, courses: allowedCourses });
     setIsEditModalOpen(true);
   };
 
@@ -434,12 +456,16 @@ export default function ManageClasses({ onBack }) {
               <div className="course-checkboxes">
                 {courses.map((course) => {
                   const code = course.code || course;
+                  const level = course.level || "unknown";
+                  const isDisabled = !newClass.teacherDepartment ||
+                    (newClass.teacherDepartment !== "both" && newClass.teacherDepartment !== level);
                   return (
                     <label key={code} className="course-checkbox">
                       <input
                         type="checkbox"
                         checked={(newClass.courses || []).includes(code)}
                         onChange={(e) => handleCourseChange(code, e.target.checked)}
+                        disabled={isDisabled}
                       />
                       {code}
                     </label>
@@ -450,7 +476,7 @@ export default function ManageClasses({ onBack }) {
             <button className="primary" onClick={handleAddClass}>Add Class</button>
             <button className="secondary" onClick={() => {
               setIsAddFormOpen(false);
-              setNewClass({ name: "", teacher: "", teacherId: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
+              setNewClass({ name: "", teacher: "", teacherId: "", teacherDepartment: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
             }}>Cancel</button>
           </div>
         </div>
@@ -613,12 +639,16 @@ export default function ManageClasses({ onBack }) {
                 <div className="course-checkboxes">
                   {courses.map((course) => {
                     const code = course.code || course;
+                    const level = course.level || "unknown";
+                    const isDisabled = !editForm.teacherDepartment ||
+                      (editForm.teacherDepartment !== "both" && editForm.teacherDepartment !== level);
                     return (
                       <label key={code} className="course-checkbox">
                         <input
                           type="checkbox"
                           checked={(editForm.courses || []).includes(code)}
                           onChange={(e) => handleCourseChange(code, e.target.checked, true)}
+                          disabled={isDisabled}
                         />
                         {code}
                       </label>
