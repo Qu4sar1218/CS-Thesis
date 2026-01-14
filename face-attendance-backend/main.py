@@ -158,6 +158,54 @@ attendance_lock = threading.Lock()
 recently_recognized = None
 recently_recognized_lock = threading.Lock()
 
+# Mode tracking
+current_mode = "class"  # Default to class mode
+current_event_id = None
+current_class_id = None
+
+def is_class_scheduled_today(schedule: str) -> bool:
+    """
+    Check if a class is scheduled for today based on its schedule string.
+
+    Args:
+        schedule: Schedule string like "MWF 9:00-10:00"
+
+    Returns:
+        bool: True if scheduled for today, False otherwise
+    """
+    if not schedule:
+        return False
+
+    # Split schedule into days and time parts
+    parts = schedule.split()
+    if not parts:
+        return False
+
+    days_str = parts[0]  # e.g., "MWF" or "ThF"
+
+    # Day codes mapping (weekday() returns 0=Monday, 1=Tuesday, etc.)
+    day_codes = ['M', 'T', 'W', 'Th', 'F', 'S', 'Su']
+    today_weekday = datetime.now().weekday()
+    today_code = day_codes[today_weekday]
+
+    # Parse days_str into individual day codes
+    possible_days = ['Su', 'Th', 'M', 'T', 'W', 'F', 'S']  # Check longer codes first
+    scheduled_days = []
+    i = 0
+    while i < len(days_str):
+        found = False
+        for day in possible_days:
+            if days_str.startswith(day, i):
+                scheduled_days.append(day)
+                i += len(day)
+                found = True
+                break
+        if not found:
+            i += 1  # Skip invalid character
+
+    # Check if today_code is in scheduled_days
+    return today_code in scheduled_days
+
 # Database
 client: AsyncIOMotorClient = None
 db = None
@@ -610,17 +658,38 @@ async def reload_faces():
     return {"status": "reloaded from database"}
 
 @app.post("/set-mode")
-def set_mode(mode_data: dict):
+async def set_mode(mode_data: dict):
     """Set the current recognition mode."""
-    global current_mode, current_event_id
+    global current_mode, current_event_id, current_class_id
     mode = mode_data.get("mode")
     event_id = mode_data.get("event_id")
 
     if mode not in ["class", "events"]:
         raise HTTPException(status_code=400, detail="Invalid mode")
 
+    if mode == "class":
+        # For class mode, event_id is actually class_id
+        class_id = event_id
+        if not class_id:
+            raise HTTPException(status_code=400, detail="class_id is required for class mode")
+
+        # Check if class exists
+        class_doc = await db.classes.find_one({"_id": ObjectId(class_id)})
+        if not class_doc:
+            raise HTTPException(status_code=404, detail="Class not found")
+
+        # Check if class is scheduled today
+        if not is_class_scheduled_today(class_doc.get("schedule", "")):
+            raise HTTPException(status_code=403, detail="This class is not scheduled for today")
+
+        current_class_id = class_id
+        current_event_id = None
+    else:
+        # For events mode
+        current_class_id = None
+        current_event_id = event_id
+
     current_mode = mode
-    current_event_id = event_id
     return {"message": f"Mode set to {mode}", "event_id": event_id}
 
 
@@ -993,6 +1062,9 @@ async def get_classes_by_teacher(teacher_id: str):
     classes = []
     async for class_doc in db.classes.find({"teacher_id": actual_teacher_id}):
         class_doc["_id"] = str(class_doc["_id"])
+        # Add accessibility flag based on schedule
+        schedule = class_doc.get("schedule", "")
+        class_doc["accessible"] = is_class_scheduled_today(schedule)
         classes.append(class_doc)
     return {"classes": classes}
 

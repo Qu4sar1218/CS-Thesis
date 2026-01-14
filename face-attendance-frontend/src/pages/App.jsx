@@ -163,44 +163,12 @@ function App() {
     const [loadingSubjects, setLoadingSubjects] = useState(false);
 
     const subjects = role === "teacher" ? teacherSubjects : [
-      { id: "math101", name: "Mathematics 101", weekday: 1 },
-      { id: "eng201", name: "English 201", weekday: 2 },
-      { id: "cs301", name: "Computer Science 301", weekday: 3 },
-      { id: "phy110", name: "Physics 110", weekday: 4 },
-      { id: "hist210", name: "History 210", weekday: 5 },
+      { id: "math101", name: "Mathematics 101", accessible: true },
+      { id: "eng201", name: "English 201", accessible: true },
+      { id: "cs301", name: "Computer Science 301", accessible: true },
+      { id: "phy110", name: "Physics 110", accessible: true },
+      { id: "hist210", name: "History 210", accessible: true },
     ];
-
-    const parseWeekdayFromSchedule = (schedule) => {
-      if (!schedule) return 1;
-
-      // Extract the day part from schedule (e.g., "MWF 9:00-10:00" -> "MWF")
-      const dayPart = schedule.split(' ')[0];
-
-      // Map day abbreviations to weekday numbers (0=Sunday, 1=Monday, etc.)
-      const dayMap = {
-        'Su': 0, 'Sun': 0, 'Sunday': 0,
-        'M': 1, 'Mon': 1, 'Monday': 1,
-        'T': 2, 'Tue': 2, 'Tuesday': 2,
-        'W': 3, 'Wed': 3, 'Wednesday': 3,
-        'Th': 4, 'Thu': 4, 'Thursday': 4, 'R': 4,
-        'F': 5, 'Fri': 5, 'Friday': 5,
-        'S': 6, 'Sat': 6, 'Saturday': 6
-      };
-
-      // If it's a single day, return its number
-      if (dayMap[dayPart]) {
-        return dayMap[dayPart];
-      }
-
-      // If it's multiple days (like "MWF"), take the first day
-      const firstChar = dayPart.charAt(0);
-      if (dayMap[firstChar]) {
-        return dayMap[firstChar];
-      }
-
-      // Default to Monday if parsing fails
-      return 1;
-    };
 
     useEffect(() => {
       if (role === "teacher" && panelMode === "class" && userInfo?.user_id) {
@@ -213,7 +181,7 @@ function App() {
               const subjectsFromClasses = data.classes.map(cls => ({
                 id: cls.class_code,
                 name: cls.class_name,
-                weekday: parseWeekdayFromSchedule(cls.schedule)
+                accessible: cls.accessible
               }));
               setTeacherSubjects(subjectsFromClasses);
             }
@@ -226,14 +194,6 @@ function App() {
         fetchTeacherSubjects();
       }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const getDayName = (weekday) => {
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      return days[weekday] || 'Unknown';
-    };
-
-    const today = new Date().getDay();
-    const isToday = (s) => s.weekday === today;
 
     if (panelMode === "class") {
       return (
@@ -254,18 +214,21 @@ function App() {
                     <button
                       key={s.id}
                       onClick={() => {
-                        setSelectedSubject(s);
-                        setShowAttendanceMode(false);
-                        setShowStatusPanel(true);
+                        if (s.accessible) {
+                          setSelectedSubject(s);
+                          setShowAttendanceMode(false);
+                          setShowStatusPanel(true);
+                        }
                       }}
+                      disabled={!s.accessible}
                       className={`btn subject-card ${
-                        isToday(s) ? "subject-today" : ""
+                        s.accessible ? "subject-today" : "subject-disabled"
                       }`}
                     >
                       <div className="subject-name">
-                        {s.name} {isToday(s) ? "• Today" : ""}
+                        {s.name} {s.accessible ? "• Scheduled today" : " - Not scheduled for today"}
                       </div>
-                      <div className="subject-meta">{getDayName(s.weekday)}</div>
+                      <div className="subject-meta">{s.accessible ? "Scheduled today" : "Not scheduled for today"}</div>
                     </button>
                   ))}
                 </div>

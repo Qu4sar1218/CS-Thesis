@@ -231,9 +231,9 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
                   const timeRange = parts.slice(1).join(' ');
                   const [startTime, endTime] = timeRange.split('-');
                   return (
-                    <div key={cls._id} className="class-item">
+                    <div key={cls._id} className={`class-item ${!cls.accessible ? 'disabled' : ''}`}>
                       <span className="class-time">{startTime} - {endTime}</span>
-                      <span className="class-name">{cls.class_name} ({cls.class_code})</span>
+                      <span className="class-name">{cls.class_name} ({cls.class_code}){!cls.accessible ? ' - Not scheduled for today' : ''}</span>
                       <span className="class-status">{days} - {cls.room}</span>
                     </div>
                   );
