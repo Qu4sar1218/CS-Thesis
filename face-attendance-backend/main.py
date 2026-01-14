@@ -147,7 +147,7 @@ recognition_running = False
 stop_streaming = False
 active_camera = None
 
-known_face_encodings, known_face_names, known_face_ids = [], [], []
+known_face_encodings, known_face_names, known_face_ids, known_face_courses, known_face_years = [], [], [], [], []
 encodings_lock = threading.Lock()
 
 # Attendance tracking
@@ -341,13 +341,15 @@ async def shutdown_event():
 
 # === FACE LOADING === #
 async def load_faces_from_db():
-    global known_face_encodings, known_face_names, known_face_ids
+    global known_face_encodings, known_face_names, known_face_ids, known_face_courses, known_face_years
     logger.info("🔄 Loading saved face encodings from database...")
 
     with encodings_lock:
         known_face_encodings.clear()
         known_face_names.clear()
         known_face_ids.clear()
+        known_face_courses.clear()
+        known_face_years.clear()
 
         try:
             students_collection = db.students
@@ -356,6 +358,8 @@ async def load_faces_from_db():
                 first_name = student.get("first_name", "")
                 last_name = student.get("last_name", "")
                 full_name = f"{first_name} {last_name}".strip()
+                course = student.get("course", "Unknown")
+                year = student.get("year", "Unknown")
                 enc_list = student.get("face_encodings", [])
                 loaded_count = 0
                 for enc in enc_list:
@@ -363,10 +367,12 @@ async def load_faces_from_db():
                         known_face_encodings.append(np.array(enc))
                         known_face_names.append(full_name)
                         known_face_ids.append(student_id)
+                        known_face_courses.append(course)
+                        known_face_years.append(year)
                         loaded_count += 1
                     else:
                         logger.warning(f"Skipping invalid encoding for {student_id}: {type(enc)} len={len(enc) if isinstance(enc, list) else 'N/A'}")
-                logger.info(f"✅ Loaded {loaded_count}/{len(enc_list)} encodings for: {full_name} ({student_id})")
+                logger.info(f"✅ Loaded {loaded_count}/{len(enc_list)} encodings for: {full_name} ({student_id}) - Course: {course}, Year: {year}")
         except Exception as e:
             logger.error(f"❌ Failed to load face encodings from database: {e}")
 
@@ -479,6 +485,8 @@ def recognition_loop():
                             if dists[idx] <= FACE_MATCH_THRESHOLD:
                                 name = known_face_names[idx]
                                 student_id = known_face_ids[idx]
+                                course = known_face_courses[idx]
+                                year = known_face_years[idx]
 
                                 # Record attendance in memory and database
                                 current_time = datetime.now().strftime('%H:%M:%S')
@@ -493,8 +501,8 @@ def recognition_loop():
                                             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                             'date': datetime.now().strftime('%Y-%m-%d'),
                                             'time': current_time,
-                                            'course': 'Unknown',
-                                            'year': 'Unknown',
+                                            'course': course,
+                                            'year': year,
                                             'status': 'present'
                                         }
                                         attendance_records.append(record)
@@ -514,8 +522,8 @@ def recognition_loop():
                                         'student_id': student_id,
                                         'time': current_time,
                                         'date': datetime.now().strftime('%Y-%m-%d'),
-                                        'course': 'Unknown',
-                                        'year': 'Unknown'
+                                        'course': course,
+                                        'year': year
                                     }
 
                     # Draw name immediately
@@ -1017,8 +1025,12 @@ async def delete_class(class_id: str):
     return {"message": "Class deleted successfully"}
 
 @app.post("/classes/{class_id}/enroll")
-async def enroll_student(class_id: str, student_id: str):
+async def enroll_student(class_id: str, data: dict):
     """Enroll a student in a class."""
+    student_id = data.get("student_id")
+    if not student_id:
+        raise HTTPException(status_code=400, detail="student_id is required")
+
     class_doc = await db.classes.find_one({"_id": ObjectId(class_id)})
     if not class_doc:
         raise HTTPException(status_code=404, detail="Class not found")

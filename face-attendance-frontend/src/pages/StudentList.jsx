@@ -230,7 +230,8 @@ export default function StudentList({ onBack }) {
         setStudentToEnroll(null);
       } else {
         const result = await response.json();
-        setError(`Failed to enroll student: ${result.detail || result.error}`);
+        const errorMessage = result.detail || result.error || JSON.stringify(result);
+        setError(`Failed to enroll student: ${errorMessage}`);
       }
     } catch (error) {
       setError(`Error enrolling student: ${error.message}`);
