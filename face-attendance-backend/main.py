@@ -539,6 +539,28 @@ def recognition_loop():
                                 # Record attendance in memory and database
                                 current_time = datetime.now().strftime('%H:%M:%S')
 
+                                # Check payment status for events mode
+                                payment_verified = False
+                                if current_mode == "events" and current_event_id:
+                                    try:
+                                        # Check payment status via API call
+                                        import aiohttp
+                                        import asyncio
+
+                                        async def check_payment():
+                                            async with aiohttp.ClientSession() as session:
+                                                url = f"http://127.0.0.1:8000/students/{student_id}/payment-status/{current_event_id}"
+                                                async with session.get(url) as response:
+                                                    if response.status == 200:
+                                                        data = await response.json()
+                                                        return data.get("paid", False)
+                                                    return False
+
+                                        payment_verified = asyncio.run(check_payment())
+                                    except Exception as e:
+                                        logger.error(f"❌ Error checking payment status for {student_id}: {e}")
+                                        payment_verified = False
+
                                 with attendance_lock:
                                     # Check if student already recorded today
                                     today_records = [r for r in attendance_records if r['student_id'] == student_id and r['date'] == datetime.now().strftime('%Y-%m-%d')]
@@ -551,7 +573,8 @@ def recognition_loop():
                                             'time': current_time,
                                             'course': course,
                                             'year': year,
-                                            'status': 'present'
+                                            'status': 'present',
+                                            'payment_verified': payment_verified if current_mode == "events" else None
                                         }
                                         attendance_records.append(record)
 
@@ -702,7 +725,9 @@ def get_status():
         "status": "running" if recognition_running else "stopped",
         "recognition_running": recognition_running,
         "camera_active": active_camera is not None,
-        "faces_loaded": len(known_face_names)
+        "faces_loaded": len(known_face_names),
+        "current_mode": current_mode,
+        "current_event_id": current_event_id
     }
 
 

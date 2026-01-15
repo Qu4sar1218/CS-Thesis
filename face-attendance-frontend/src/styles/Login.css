@@ -22,7 +22,7 @@
 
   --white: #ffffff;
 
-  /* Glassmorphism and Glow Effects */
+  /* Glassmorphism and Glow Effects */  
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
   --glow-teal: 0 0 20px rgba(45, 212, 191, 0.3);

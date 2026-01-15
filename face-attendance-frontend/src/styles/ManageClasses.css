@@ -105,21 +105,22 @@
 }
 
 .classes-table th {
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.1);
   font-weight: 700;
-  color: #047857;
+  color: var(--white);
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .classes-table td {
-  color: #1f2937;
+  color: var(--white);
   font-size: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .classes-table tr:hover {
-  background: #f0fdf4;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .action-btn {

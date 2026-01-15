@@ -287,7 +287,7 @@ export default function TeacherList({ onBack }) {
       {isEditModalOpen && (
         <div className="modal-overlay" onClick={closeModals}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit Teacher</h2>
+            <h2>Edit Infortmation</h2>
             <form className="edit-form">
               <div className="form-group">
                 <label>First Name:</label>

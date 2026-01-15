@@ -214,12 +214,11 @@
 }
 
 .student-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(15px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: white;
+  border: 1px solid var(--gray-200);
   border-radius: 20px;
   padding: 24px;
-  box-shadow: var(--shadow-glass);
+  box-shadow: var(--shadow-card);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -276,7 +275,7 @@
 
 .student-id {
   font-size: 14px;
-  color: var(--slate-300);
+  color: black;
   font-weight: 500;
   margin: 0;
   text-transform: uppercase;
@@ -302,19 +301,19 @@
 .detail-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--gray-700);
+  color: black;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .detail-value {
   font-size: 14px;
-  color: var(--gray-900);
+  color: black;
   font-weight: 500;
 }
 
 .muted-placeholder {
-  color: var(--gray-400);
+  color: black;
   font-style: italic;
 }
 
@@ -497,7 +496,7 @@
 }
 
 .student-list .detail-row span {
-  color: var(--gray-900);
+  color:  #000000;
   font-weight: 500;
 }
 
@@ -531,6 +530,7 @@
   transition: all 0.3s ease;
   box-shadow: var(--shadow-card);
   font-weight: 500;
+  color: black;
 }
 
 .student-list .form-group input:focus,

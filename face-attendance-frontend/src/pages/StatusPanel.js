@@ -11,6 +11,7 @@ function StatusPanel({ mode, subject }) {
   const [imageSrc, setImageSrc] = useState(null);
   const [useSnapshotFallback, setUseSnapshotFallback] = useState(false);
   const [recentlyRecognized, setRecentlyRecognized] = useState(null);
+  const [paymentStatuses, setPaymentStatuses] = useState({});
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
   
@@ -33,6 +34,22 @@ function StatusPanel({ mode, subject }) {
     setImageSrc(url || null);
   };
 
+  const fetchPaymentStatuses = useCallback(async (attendanceRecords, currentEventId) => {
+    if (mode !== 'events') return;
+
+    const statuses = {};
+    for (const record of attendanceRecords) {
+      try {
+        const response = await axios.get(`${BACKEND_URL}/students/${record.student_id}/payment-status/${currentEventId}`);
+        statuses[record.student_id] = response.data.paid;
+      } catch (err) {
+        console.error(`Error fetching payment status for ${record.student_id}:`, err);
+        statuses[record.student_id] = false;
+      }
+    }
+    setPaymentStatuses(statuses);
+  }, [BACKEND_URL, mode]);
+
   const fetchStatusData = useCallback(async () => {
     try {
       const statusRes = await axios.get(`${BACKEND_URL}/status`);
@@ -40,14 +57,20 @@ function StatusPanel({ mode, subject }) {
       setIsRecognitionActive(Boolean(statusRes.data.recognition_running));
 
       const attendanceRes = await axios.get(`${BACKEND_URL}/attendance`);
-      setAttendance(attendanceRes.data.attendance || []);
+      const attendanceRecords = attendanceRes.data.attendance || [];
+      setAttendance(attendanceRecords);
 
       const recognizedRes = await axios.get(`${BACKEND_URL}/recently-recognized`);
       setRecentlyRecognized(recognizedRes.data.recently_recognized);
+
+      // Fetch payment statuses for events mode
+      if (mode === 'events') {
+        await fetchPaymentStatuses(attendanceRecords, statusRes.data.current_event_id);
+      }
     } catch (err) {
       console.error("Error fetching status:", err);
     }
-  }, [BACKEND_URL]);
+  }, [BACKEND_URL, mode, fetchPaymentStatuses]);
 
   const startStream = useCallback(() => {
     console.log("Starting camera stream");
@@ -344,9 +367,13 @@ function StatusPanel({ mode, subject }) {
         )}
 
         <section className="card attendance-list" aria-labelledby="attendance-heading">
-          <h2 id="attendance-heading">Attendance</h2>
+          <h2 id="attendance-heading">
+            {mode === 'events' ? 'Event Attendance' : 'Attendance'}
+          </h2>
           <p className="attendance-count">
-            <strong>Total Present:</strong> {attendance.length || 0}
+            <strong>
+              {mode === 'events' ? 'Total Attended Event:' : 'Total Present:'}
+            </strong> {attendance.length || 0}
           </p>
           <div className="attendance-scroll">
             {attendance.length > 0 ? (
@@ -358,13 +385,30 @@ function StatusPanel({ mode, subject }) {
                       <span className="timestamp">{record.timestamp}</span>
                     </div>
                     <div className="attendance-meta">
-                      {record.course} • {record.year}
+                      {mode === 'events' ? (
+                        <>
+                          <span className={`event-attended-badge ${paymentStatuses[record.student_id] ? 'verified' : 'unverified'}`}>
+                            {paymentStatuses[record.student_id] ? '✓ Event Attended' : 'Receipt Not Found or is not verified'}
+                          </span>
+                          <br />
+                          {record.course} • {record.year}
+                        </>
+                      ) : (
+                        <>
+                          {record.course} • {record.year}
+                        </>
+                      )}
                     </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="empty-state">No attendance records yet.</p>
+              <p className="empty-state">
+                {mode === 'events'
+                  ? 'No verified event attendance yet. Students must have verified receipts to be marked as attended.'
+                  : 'No attendance records yet.'
+                }
+              </p>
             )}
           </div>
         </section>
