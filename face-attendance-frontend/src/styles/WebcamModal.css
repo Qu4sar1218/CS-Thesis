@@ -26,7 +26,7 @@
 
 /* Modal Container */
 .webcam-modal {
-  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  background: var(--dashboard-bg);
   border: 3px solid #10b981;
   padding: 35px;
   border-radius: 20px;
@@ -36,6 +36,8 @@
   overflow-y: auto;
   box-shadow: 0 10px 40px rgba(16, 185, 129, 0.2), 0 4px 20px rgba(0, 0, 0, 0.1);
   animation: slideUp 0.3s ease;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 @keyframes slideUp {
@@ -107,6 +109,33 @@
   display: block;
   border-radius: 12px;
   object-fit: cover;
+  position: relative;
+  z-index: 1;
+}
+
+.oval-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200px;
+  height: 150px;
+  border: 3px solid rgba(16, 185, 129, 0.8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: moveOval 3s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes moveOval {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 .hidden-canvas {

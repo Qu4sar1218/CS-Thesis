@@ -1,0 +1,395 @@
+@import './design-tokens.css';
+
+/* Page Layout */
+.student-profile-page {
+  min-height: 100vh;
+  background: var(--dashboard-bg);
+  font-family: Inter, system-ui;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 20px;
+  transition: background 0.3s;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Main Card */
+.profile-main-card {
+  width: 100%;
+  max-width: 700px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 32px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Profile Header */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.avatar-section {
+  flex-shrink: 0;
+}
+
+.avatar-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.header-info {
+  flex: 1;
+}
+
+.student-name {
+  margin: 0 0 8px 0;
+  color: white;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.student-id,
+.student-email {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.edit-profile-btn {
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s;
+}
+
+.edit-profile-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* Section Titles */
+.section-title {
+  margin: 0 0 16px 0;
+  color: white;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.subsection-title {
+  margin: 0 0 12px 0;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Student Information Section */
+.student-info-section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 24px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  color: white;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.info-input {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.info-input:focus {
+  outline: none;
+  border-color: var(--emerald-500);
+}
+
+/* Attendance Section */
+.attendance-section {
+  padding-top: 8px;
+}
+
+.attendance-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Recent Attendance */
+.recent-attendance {
+  margin-top: 16px;
+}
+
+.attendance-table {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 16px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.table-header span {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row span {
+  color: white;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.status-badge.present {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.status-badge.absent {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* Edit Actions */
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+
+.save-btn:hover {
+  transform: translateY(-1px);
+}
+
+.cancel-btn {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff9b9b;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid var(--emerald-500);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .student-profile-page {
+    padding: 16px;
+  }
+
+  .profile-main-card {
+    padding: 24px;
+    gap: 24px;
+  }
+
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .avatar-circle {
+    width: 64px;
+    height: 64px;
+    font-size: 24px;
+  }
+
+  .student-name {
+    font-size: 24px;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .attendance-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr 1.5fr 0.8fr;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .edit-actions {
+    flex-direction: column;
+  }
+}

@@ -404,24 +404,22 @@
   align-items: center;
   gap: 12px;
   padding: 16px 32px;
-  background: transparent;
-  border: 2px solid var(--navy-300);
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  border: none;
   border-radius: 24px;
-  color: var(--navy-700);
+  color: white;
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  box-shadow: var(--shadow-button);
 }
 
 .back-btn:hover {
-  background: var(--navy-50);
-  border-color: var(--navy-500);
-  color: var(--navy-900);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-button-hover);
 }
 
 /* Modal Styles */
@@ -431,7 +429,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(30, 58, 138, 0.4);
+  background: rgba(16, 185, 129, 0.3);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -441,9 +439,9 @@
 }
 
 .student-list .modal-content {
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--dashboard-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 32px;
   border-radius: 24px;
   max-width: 500px;
@@ -488,7 +486,7 @@
 }
 
 .student-list .detail-row strong {
-  color: var(--navy-700);
+  color: white;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -570,9 +568,9 @@
 }
 
 .student-list .btn-secondary {
-  background: transparent;
-  color: var(--gray-600);
-  border: 2px solid var(--gray-300);
+  background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+  color: white;
+  border: none;
   padding: 14px 24px;
   border-radius: 12px;
   cursor: pointer;
@@ -581,14 +579,12 @@
   transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  box-shadow: var(--shadow-button);
 }
 
 .student-list .btn-secondary:hover {
-  background: var(--gray-50);
-  border-color: var(--gray-500);
-  color: var(--gray-900);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .student-list .classes-list {
@@ -616,30 +612,50 @@
   font-weight: 600;
 }
 
-.student-list .class-item div {
-  margin: 4px 0;
+.student-list .class-code {
   color: var(--gray-600);
-  font-size: 14px;
+  font-weight: 500;
 }
 
-.student-list .class-item button {
+.student-list .class-details {
+  display: flex;
+  gap: 12px;
+  align-items: center;
   margin-top: 8px;
-  background: linear-gradient(135deg, var(--primary-blue), var(--navy-600));
+}
+
+.student-list .class-teacher,
+.student-list .class-room,
+.student-list .enroll-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.student-list .class-teacher,
+.student-list .class-room {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--gray-700);
+}
+
+.student-list .enroll-btn {
+  background: var(--emerald-500);
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
-  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.student-list .class-item button:hover {
+.student-list .enroll-btn:hover {
+  background: var(--emerald-600);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
 }
 
 @keyframes fadeIn {

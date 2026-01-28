@@ -177,6 +177,14 @@ export default function TeacherList({ onBack }) {
     <div className="teacher-list">
       <h1>Teacher List</h1>
 
+      {/* Back Button */}
+      <div className="page-actions">
+        <button type="button" className="back-btn" onClick={onBack}>
+          <span className="btn-icon">←</span>
+          <span className="btn-text">Back to Dashboard</span>
+        </button>
+      </div>
+
       <div className="search-bar">
         <input
           type="text"
@@ -246,11 +254,7 @@ export default function TeacherList({ onBack }) {
         </div>
       )}
 
-      <div className="teacher-list-form-buttons">
-        <button type="button" className="teacher-list-secondary" onClick={onBack} style={{ padding: '8px 16px', fontSize: '13px', marginTop: '10px' }}>
-          Back
-        </button>
-      </div>
+
 
       {isViewModalOpen && selectedTeacher && (
         <div className="modal-overlay" onClick={closeModals}>

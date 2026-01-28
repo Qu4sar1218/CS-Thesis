@@ -14,6 +14,9 @@ function AdminReceiptVerification({ onBack }) {
     year: "",
     gradeLevel: ""
   });
+  const [showModal, setShowModal] = useState(false);
+  const [allCourses, setAllCourses] = useState([]);
+  const [allYears, setAllYears] = useState([]);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -21,6 +24,7 @@ function AdminReceiptVerification({ onBack }) {
     try {
       const receiptsData = (await axios.get(`${BACKEND_URL}/receipts`)).data.receipts || [];
       const studentsData = (await axios.get(`${BACKEND_URL}/students`)).data.students || [];
+      const coursesData = (await axios.get(`${BACKEND_URL}/courses`)).data.courses || [];
 
       // Create a map of student_id to student data
       const studentsMap = {};
@@ -38,9 +42,15 @@ function AdminReceiptVerification({ onBack }) {
       }));
 
       setReceipts(receiptsWithStudents);
+
+      // Set all available courses
+      setAllCourses([...new Set(coursesData.map(c => c.code))]);
+
+      // Set all available years from students
+      setAllYears([...new Set(studentsData.map(s => s.year).filter(y => y))]);
     } catch (error) {
-      console.error("Error fetching receipts:", error);
-      setMessage("Failed to load receipts. Please try again.");
+      console.error("Error fetching data:", error);
+      setMessage("Failed to load data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -85,12 +95,50 @@ function AdminReceiptVerification({ onBack }) {
       // Refresh receipts
       await fetchReceipts();
       setSelectedReceipt(null);
+      setShowModal(false);
     } catch (error) {
       console.error("Error verifying receipt:", error);
       setMessage("Failed to verify receipt. Please try again.");
     } finally {
       setVerifying(false);
     }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedReceipt) return;
+
+    if (!window.confirm("Are you sure you want to delete this receipt? This action cannot be undone.")) {
+      return;
+    }
+
+    setVerifying(true);
+    setMessage("");
+
+    try {
+      await axios.delete(`${BACKEND_URL}/receipts/${selectedReceipt._id}`);
+      setMessage("Receipt deleted successfully!");
+      // Refresh receipts
+      await fetchReceipts();
+      setSelectedReceipt(null);
+      setShowModal(false);
+    } catch (error) {
+      console.error("Error deleting receipt:", error);
+      setMessage("Failed to delete receipt. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+
+
+  const handleSelectReceipt = (receipt) => {
+    setSelectedReceipt(receipt);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setSelectedReceipt(null);
+    setShowModal(false);
   };
 
   const getStatusColor = (status) => {
@@ -132,31 +180,22 @@ function AdminReceiptVerification({ onBack }) {
               onChange={(e) => setFilters({...filters, course: e.target.value})}
             >
               <option value="">All Courses</option>
-              {[...new Set(receipts.map(r => r.student_course).filter(c => c !== 'Unknown'))].map(course => (
+              {allCourses.map(course => (
                 <option key={course} value={course}>{course}</option>
               ))}
             </select>
-            <select
-              value={filters.year}
-              onChange={(e) => setFilters({...filters, year: e.target.value})}
-            >
-              <option value="">All Years</option>
-              {[...new Set(receipts.map(r => r.student_year).filter(y => y !== 'Unknown'))].map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+            
             <select
               value={filters.gradeLevel}
               onChange={(e) => setFilters({...filters, gradeLevel: e.target.value})}
             >
-              <option value="">All Grade Levels</option>
-              {[...new Set(receipts.map(r => r.student_year).filter(y => y !== 'Unknown'))].map(grade => (
+              <option value="">All Year Levels</option>
+              {allYears.map(grade => (
                 <option key={grade} value={grade}>{grade}</option>
               ))}
             </select>
           </div>
         </section>
-
         <section className="receipts-list">
           <h2>Pending Receipts ({filteredReceipts.length})</h2>
           {filteredReceipts.length > 0 ? (
@@ -165,7 +204,7 @@ function AdminReceiptVerification({ onBack }) {
                 <div
                   key={receipt._id}
                   className={`receipt-card ${selectedReceipt && selectedReceipt._id === receipt._id ? "selected" : ""}`}
-                  onClick={() => setSelectedReceipt(receipt)}
+                  onClick={() => handleSelectReceipt(receipt)}
                 >
                   <div className="receipt-header">
                     <h3>Receipt #{receipt._id.slice(-6)}</h3>
@@ -190,9 +229,12 @@ function AdminReceiptVerification({ onBack }) {
             </div>
           )}
         </section>
+      </div>
 
-        {selectedReceipt && (
-          <section className="receipt-detail">
+      {showModal && selectedReceipt && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={handleCloseModal}>×</button>
             <h2>Receipt Details</h2>
             <div className="detail-content">
               <div className="detail-info">
@@ -222,38 +264,48 @@ function AdminReceiptVerification({ onBack }) {
                 />
               </div>
 
-              {selectedReceipt.status === "pending" && (
-                <div className="verification-actions">
-                  <button
-                    className="btn verify"
-                    onClick={() => handleVerify("verified")}
-                    disabled={verifying}
-                  >
-                    {verifying ? "Verifying..." : "Verify Receipt"}
-                  </button>
-                  <button
-                    className="btn reject"
-                    onClick={() => handleVerify("rejected")}
-                    disabled={verifying}
-                  >
-                    {verifying ? "Rejecting..." : "Reject Receipt"}
-                  </button>
-                  <button
-                    className="btn cancel"
-                    onClick={() => setSelectedReceipt(null)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              <div className="verification-actions">
+                {selectedReceipt.status === "pending" && (
+                  <>
+                    <button
+                      className="btn verify"
+                      onClick={() => handleVerify("verified")}
+                      disabled={verifying}
+                    >
+                      {verifying ? "Verifying..." : "Verify Receipt"}
+                    </button>
+                    <button
+                      className="btn reject"
+                      onClick={() => handleVerify("rejected")}
+                      disabled={verifying}
+                    >
+                      {verifying ? "Rejecting..." : "Reject Receipt"}
+                    </button>
+                  </>
+                )}
+                <button
+                  className="btn delete"
+                  onClick={handleDelete}
+                  disabled={verifying}
+                >
+                  {verifying ? "Deleting..." : "🗑️ Delete Receipt"}
+                </button>
+                <button
+                  className="btn cancel"
+                  onClick={handleCloseModal}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-          </section>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
-      <div className="toolbar">
-        <button className="btn btn-secondary" onClick={onBack}>
-          Back to Dashboard
+      <div className="page-actions">
+        <button type="button" className="back-btn" onClick={onBack}>
+          <span className="btn-icon">←</span>
+          <span className="btn-text">Back to Dashboard</span>
         </button>
       </div>
     </div>

@@ -7,6 +7,8 @@ import StudentReceiptSubmission from "./StudentReceiptSubmission.jsx";
 import TeacherDashboard from "./TeacherDashboard.jsx";
 import TeacherClassRoster from "./TeacherClassRoster.jsx";
 import StudentDashboard from "./StudentDashboard.jsx";
+
+import StudentProfile from "./StudentProfile.jsx";
 import StatusPanel from "./StatusPanel.js";
 import EventManagement from "./EventManagement.jsx";
 import "../styles/App.css";
@@ -373,6 +375,12 @@ function App() {
 
   if (currentPage === "receiptSubmission") {
     return <StudentReceiptSubmission studentId={userInfo?.user_id || "114001"} onBack={() => setCurrentPage("dashboard")} />;
+  }
+
+
+
+  if (currentPage === "profile") {
+    return <StudentProfile onBack={() => setCurrentPage("dashboard")} userInfo={userInfo} />;
   }
 
   if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;

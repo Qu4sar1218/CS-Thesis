@@ -253,47 +253,52 @@ function StatusPanel({ mode, subject }) {
 
   return (
     <main className="status-panel">
-      <aside className="video-container">
-        <span className={`status-badge connection ${streamConnected ? 'connected' : 'disconnected'}`}>
-          {streamConnected ? "Connected" : "Disconnected"}
-        </span>
+      {/* Live Camera Section - Left side, prominent placement for real-time monitoring */}
+      <section className="video-section">
+        <h2 className="section-title">Live Camera</h2>
+        <aside className={`video-container ${streamConnected ? 'active' : ''}`}>
+          <span className={`status-badge connection ${streamConnected ? 'connected' : 'disconnected'}`}>
+            {streamConnected ? "Connected" : "Disconnected"}
+          </span>
 
-        <span className={`status-badge recognition ${isRecognitionActive || status.recognition_running ? 'active' : 'inactive'}`}>
-          {isRecognitionActive || status.recognition_running ? "Recognition Active" : "Recognition Inactive"}
-        </span>
+          <span className={`status-badge recognition ${isRecognitionActive || status.recognition_running ? 'active' : 'inactive'}`}>
+            {isRecognitionActive || status.recognition_running ? "Recognition Active" : "Recognition Inactive"}
+          </span>
 
-        {isStreamLoading && (
-          <aside className="loading-indicator" role="status" aria-live="polite">
-            <div className="spinner"></div>
-            <p>Loading camera feed...</p>
-          </aside>
-        )}
+          {isStreamLoading && (
+            <aside className="loading-indicator" role="status" aria-live="polite">
+              <div className="spinner"></div>
+              <p>Loading camera feed...</p>
+            </aside>
+          )}
 
-        {imageSrc ? (
-          <img
-            key={imageSrc} // Force re-render when src changes
-            src={imageSrc}
-            alt="Live Camera"
-            className={`video-feed ${isStreamLoading ? 'loading' : ''}`}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-          />
-        ) : (
-          <figure className="video-placeholder">
-            <figcaption>{isStreamLoading ? 'Preparing camera...' : 'No camera feed'}</figcaption>
-          </figure>
-        )}
+          {imageSrc ? (
+            <img
+              key={imageSrc} // Force re-render when src changes
+              src={imageSrc}
+              alt="Live Camera Feed"
+              className={`video-feed ${isStreamLoading ? 'loading' : ''}`}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          ) : (
+            <figure className="video-placeholder">
+              <figcaption>{isStreamLoading ? 'Preparing camera...' : 'No camera feed available'}</figcaption>
+            </figure>
+          )}
 
-        {!streamConnected && !isStreamLoading && (
-          <aside className="connection-error" role="alert">
-            <h3>Connection Lost</h3>
-            <p>Attempting to reconnect...</p>
-            <p className="error-hint">Make sure the backend server is running on port 8000</p>
-          </aside>
-        )}
-      </aside>
+          {!streamConnected && !isStreamLoading && (
+            <aside className="connection-error" role="alert">
+              <h3>Camera Disconnected</h3>
+              <p>Attempting to reconnect...</p>
+              <p className="error-hint">Ensure the backend server is running on port 8000</p>
+            </aside>
+          )}
+        </aside>
+      </section>
 
-      <section className="info-panel">
+      {/* Status and Student Info Section - Right top, core system monitoring */}
+      <section className="status-section">
         <header className="panel-header">
           <h1>Face Attendance System</h1>
           <div className="mode-info">
@@ -309,21 +314,21 @@ function StatusPanel({ mode, subject }) {
 
         <section className="card system-status" aria-labelledby="system-status-heading">
           <h2 id="system-status-heading">System Status</h2>
-          <div className="status-grid compact">
-            <div className="status-item">
+          <div className="status-grid">
+            <div className={`status-item ${status.recognition_running ? 'active' : 'inactive'}`}>
               <span className="label">Recognition</span>
-              <span className={`value ${status.recognition_running ? 'active' : 'inactive'}`}>
+              <span className="value">
                 {status.recognition_running ? "Active" : "Inactive"}
               </span>
             </div>
-            <div className="status-item">
+            <div className={`status-item ${status.camera_active ? 'active' : 'error'}`}>
               <span className="label">Camera</span>
-              <span className={`value ${status.camera_active ? 'active' : 'inactive'}`}>
+              <span className="value">
                 {status.camera_active ? "Connected" : "Disconnected"}
               </span>
             </div>
-            <div className="status-item">
-              <span className="label">Status</span>
+            <div className={`status-item ${status.status === 'running' ? 'active' : status.status === 'error' || status.status === 'stopped' ? 'error' : 'inactive'}`}>
+              <span className="label">System</span>
               <span className="value">{status.status || "Unknown"}</span>
             </div>
           </div>
@@ -365,7 +370,10 @@ function StatusPanel({ mode, subject }) {
             </div>
           </section>
         )}
+      </section>
 
+      {/* Attendance Section - Right bottom, data/logs display */}
+      <section className="attendance-section">
         <section className="card attendance-list" aria-labelledby="attendance-heading">
           <h2 id="attendance-heading">
             {mode === 'events' ? 'Event Attendance' : 'Attendance'}

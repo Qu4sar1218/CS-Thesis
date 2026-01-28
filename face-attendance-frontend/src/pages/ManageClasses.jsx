@@ -337,6 +337,14 @@ export default function ManageClasses({ onBack }) {
     <div className="manage-classes">
       <h1>Manage Classes</h1>
 
+      {/* Back Button */}
+      <div className="page-actions">
+        <button type="button" className="back-btn" onClick={onBack}>
+          <span className="btn-icon">←</span>
+          <span className="btn-text">Back to Dashboard</span>
+        </button>
+      </div>
+
       <div className="filter-buttons">
         <button
           className={`filter-btn ${selectedDay === null ? 'active' : ''}`}
@@ -517,11 +525,7 @@ export default function ManageClasses({ onBack }) {
         </table>
       </div>
 
-      <div className="manage-classes-form-buttons">
-        <button type="button" className="manage-classes-secondary" onClick={onBack} style={{ padding: '8px 16px', fontSize: '13px', marginTop: '10px' }}>
-          Back
-        </button>
-      </div>
+
 
       {isViewModalOpen && selectedClass && (
         <div className="modal-overlay" onClick={closeModals}>

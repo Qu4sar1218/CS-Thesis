@@ -512,17 +512,18 @@ export default function StudentList({ onBack }) {
                 <div className="error">Error loading classes: {classesError}</div>
               ) : (
                 classes.map((cls) => (
-                  <div key={cls._id} className="class-item" style={{ marginBottom: '10px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
-                    <div><strong>{cls.class_name}</strong> ({cls.class_code})</div>
-                    <div>Teacher: {cls.teacher_id}</div>
-                    <div>Room: {cls.room}</div>
-                    <button
-                      className="btn-primary"
-                      onClick={() => handleEnrollStudent(cls._id)}
-                      style={{ marginTop: '5px' }}
-                    >
-                      Enroll in this class
-                    </button>
+                  <div key={cls._id} className="class-item">
+                    <div><strong>{cls.class_name}</strong> <span className="class-code">({cls.class_code})</span></div>
+                    <div className="class-details">
+                      <div className="class-teacher">Teacher: {cls.teacher_id}</div>
+                      <div className="class-room">Room: {cls.room}</div>
+                      <button
+                        className="enroll-btn"
+                        onClick={() => handleEnrollStudent(cls._id)}
+                      >
+                        Enroll
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

@@ -74,6 +74,7 @@ function Login({ onLogin }) {
                 const userData = await userResponse.json();
                 console.log("📦 User data received:", userData);
                 userInfo.full_name = `${userData.first_name} ${userData.last_name}`.trim();
+                userInfo.email = userData.email;
               } else {
                 const errorText = await userResponse.text();
                 console.error("❌ User fetch failed:", userResponse.status, errorText);
@@ -89,9 +90,7 @@ function Login({ onLogin }) {
 
           console.log("✅ Final userInfo:", userInfo);
 
-          if (role === 'student') {
-            userInfo.email = `${user_id}@student.edu`; // Placeholder
-          } else {
+          if (role !== 'student') {
             userInfo.email = username;
           }
 

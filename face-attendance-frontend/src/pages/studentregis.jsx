@@ -42,7 +42,7 @@ export default function StudentRegis({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { firstName, lastName, birthday, course, yearLevel, address, guardianContact, section } = formData;
+    const { firstName, middleName, lastName, birthday, course, yearLevel, address, guardianContact, section } = formData;
 
     // Basic validation
     if (!firstName || !lastName || !birthday || !course) {
@@ -59,6 +59,7 @@ export default function StudentRegis({ onBack }) {
         student_id: generatedId,
         first_name: firstName,
         last_name: lastName,
+        middle_name: middleName || null,
         email: "", // Not collected in form
         course: course,
         year: yearLevel,
@@ -477,6 +478,7 @@ export default function StudentRegis({ onBack }) {
                 muted
                 className="webcam-video"
               />
+              <div className="oval-guide"></div>
               <canvas ref={canvasRef} className="hidden-canvas" />
             </div>
 

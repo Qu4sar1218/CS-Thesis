@@ -5,6 +5,7 @@
   padding: 40px 20px;
   background: var(--dashboard-bg);
   min-height: 100vh;
+  position: relative;
 }
 
 .manage-classes h1 {
@@ -338,6 +339,45 @@
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* Page Actions */
+.page-actions {
+  position: absolute;
+  top: 40px;
+  left: 20px;
+  z-index: 10;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+  border: none;
+  border-radius: 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: var(--shadow-button);
+}
+
+.back-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
+}
+
+.btn-icon {
+  font-size: 16px;
+}
+
+.btn-text {
+  font-size: 12px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .manage-classes {
@@ -370,6 +410,16 @@
     padding: 4px 8px;
     font-size: 12px;
   }
+
+  .page-actions {
+    top: 30px;
+    left: 15px;
+  }
+
+  .back-btn {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -386,6 +436,16 @@
   .classes-table td {
     padding: 8px 12px;
   }
+
+  .page-actions {
+    top: 20px;
+    left: 15px;
+  }
+
+  .back-btn {
+    padding: 10px 20px;
+    font-size: 12px;
+  }
 }
 
 /* Teacher Autocomplete Styles */
@@ -399,11 +459,10 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: white;
+  border: 1px solid #ccc;
   border-radius: 4px;
-  box-shadow: var(--shadow-glass);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   max-height: 200px;
   overflow-y: auto;
   z-index: 1000;
@@ -428,12 +487,12 @@
 
 .teacher-name {
   font-weight: 500;
-  color: var(--white);
+  color: black;
 }
 
 .teacher-id {
   font-size: 0.9em;
-  color: var(--slate-300);
+  color: black;
   font-weight: 400;
 }
 

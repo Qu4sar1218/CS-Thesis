@@ -67,6 +67,17 @@ body {
   }
 }
 
+@keyframes cardProject {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateZ(-300px) scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateZ(0px);
+  }
+}
+
 @keyframes pulseGlow {
   0%, 100% {
     transform: scale(1);
@@ -90,6 +101,15 @@ body {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes scanLine {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
   }
 }
 
@@ -128,26 +148,40 @@ body {
 
 /* ===== Login Card ===== */
 .login-card {
-  width: 100%;
-  max-width: 440px;
-  background: linear-gradient(145deg, #1e293b, #0f172a);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-radius: 24px;
-  border: 1px solid var(--emerald-500);
-  box-shadow: var(--shadow-card);
-  padding: 48px 40px;
-  position: relative;
-  overflow: visible;
-  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) translateZ(0px);
+  width: 450px;
+  padding: 50px 45px;
+  background: rgba(10, 25, 45, 0.25);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(0, 217, 255, 0.5);
+  border-radius: 20px;
+  box-shadow:
+      0 0 60px rgba(0, 217, 255, 0.4),
+      inset 0 0 40px rgba(0, 136, 255, 0.15);
+  opacity: 0;
+  transform: translate(-50%, -50%) translateZ(-300px) scale(0.3);
+  animation: cardProject 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 1.05s;
+  z-index: 10;
 }
 
-.login-card:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
-  border-color: var(--emerald-400);
+.login-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10px;
+  width: calc(100% - 20px);
+  height: 2px;
+  background: linear-gradient(90deg, rgba(0, 217, 255, 0.8), rgba(0, 136, 255, 0.8));
+  box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+  animation: scanLine 2s ease-in-out infinite;
+  z-index: 0;
 }
+
+
 
 /* ===== Header Section ===== */
 .login-header {

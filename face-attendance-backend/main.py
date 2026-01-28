@@ -271,6 +271,7 @@ class StudentBase(BaseModel):
     student_id: str
     first_name: str
     last_name: str
+    middle_name: Optional[str] = None
     email: str
     course: str
     year: str
@@ -367,7 +368,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 FACE_MATCH_THRESHOLD = 0.5  # Lower threshold for better recognition
-PROCESS_EVERY_N_FRAMES = 2
+PROCESS_EVERY_N_FRAMES = 5
 JPEG_QUALITY = 70
 FRAME_SCALE = 0.5  # Scale down for faster processing
 
@@ -404,8 +405,9 @@ async def load_faces_from_db():
             async for student in students_collection.find({"face_encodings": {"$exists": True, "$ne": []}}):
                 student_id = student["student_id"]
                 first_name = student.get("first_name", "")
+                middle_name = student.get("middle_name", "")
                 last_name = student.get("last_name", "")
-                full_name = f"{first_name} {last_name}".strip()
+                full_name = f"{first_name} {middle_name} {last_name}".strip()
                 course = student.get("course", "Unknown")
                 year = student.get("year", "Unknown")
                 enc_list = student.get("face_encodings", [])
@@ -584,6 +586,13 @@ def recognition_loop():
                                             save_attendance_to_db(record),
                                             asyncio.get_event_loop()
                                         )
+
+                                        # Also update database record if it exists as absent
+                                        if current_mode == "class" and current_class_id:
+                                            asyncio.run_coroutine_threadsafe(
+                                                update_attendance_status(student_id, current_class_id, 'present'),
+                                                asyncio.get_event_loop()
+                                            )
 
                                 # Update recently recognized student
                                 with recently_recognized_lock:
@@ -1146,6 +1155,47 @@ async def enroll_student(class_id: str, data: dict):
 
 
 # === ATTENDANCE MANAGEMENT === #
+@app.post("/attendance/initialize-class/{class_id}")
+async def initialize_class_attendance(class_id: str):
+    """Initialize attendance records for all enrolled students in a class as absent for today."""
+    # Check if class exists
+    class_doc = await db.classes.find_one({"_id": ObjectId(class_id)})
+    if not class_doc:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    enrolled_students = class_doc.get("enrolled_students", [])
+    if not enrolled_students:
+        return {"message": "No enrolled students found for this class"}
+
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    attendance_collection = db.attendance
+    initialized_count = 0
+
+    for student_id in enrolled_students:
+        # Check if student already has a record for today
+        existing_record = await attendance_collection.find_one({
+            "student_id": student_id,
+            "class_id": class_id,
+            "date": current_date
+        })
+
+        if not existing_record:
+            # Create absent record
+            attendance_record = {
+                "student_id": student_id,
+                "class_id": class_id,
+                "date": current_date,
+                "status": "absent",
+                "timestamp": current_timestamp,
+                "subject": class_doc.get("class_name", "Unknown Subject")
+            }
+            await attendance_collection.insert_one(attendance_record)
+            initialized_count += 1
+
+    return {"message": f"Initialized attendance for {initialized_count} students"}
+
 @app.post("/attendance/check-in")
 async def check_in(attendance_data: dict):
     """Manual check-in for attendance."""
@@ -1315,6 +1365,14 @@ async def verify_receipt(receipt_id: str, verification_data: dict):
         raise HTTPException(status_code=404, detail="Receipt not found")
 
     return {"message": f"Receipt {status} successfully"}
+
+@app.delete("/receipts/{receipt_id}")
+async def delete_receipt(receipt_id: str):
+    """Delete a receipt (admin only)."""
+    result = await db.receipts.delete_one({"_id": ObjectId(receipt_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    return {"message": "Receipt deleted successfully"}
 
 @app.get("/students/{student_id}/payment-status/{event_id}")
 async def get_payment_status(student_id: str, event_id: str):

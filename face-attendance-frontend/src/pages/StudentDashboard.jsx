@@ -52,10 +52,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
         {/* Navigation */}
         <nav className="sidebar-nav" aria-label="student actions">
           <div className="nav-section">
-            <button className="nav-item">
-              <span className="nav-icon">📊</span>
-              {isOpen && <span className="nav-text">My Attendance</span>}
-            </button>
+
 
             <button className="nav-item">
               <span className="nav-icon">📅</span>
@@ -72,7 +69,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
               {isOpen && <span className="nav-text">Grades</span>}
             </button>
 
-            <button className="nav-item">
+            <button className="nav-item" onClick={() => onNavigate && onNavigate("profile")}>
               <span className="nav-icon">👤</span>
               {isOpen && <span className="nav-text">Profile</span>}
             </button>

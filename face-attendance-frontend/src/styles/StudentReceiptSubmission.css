@@ -1,59 +1,128 @@
+@import './design-tokens.css';
+
+/* ===== Receipt Submission Container ===== */
 .receipt-submission {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-height: 100vh;
+  background: var(--dashboard-bg);
+  padding: 60px 40px;
+  font-family: Inter, system-ui;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
+/* ===== Header Section ===== */
 .submission-header {
   text-align: center;
   margin-bottom: 2rem;
+  max-width: 600px;
+  width: 100%;
 }
 
 .submission-header h1 {
-  color: #333;
+  color: var(--white);
   margin-bottom: 0.5rem;
+  font-weight: 700;
+  font-size: 24px;
 }
 
 .submission-header p {
-  color: #666;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 1.1rem;
 }
 
+/* ===== Form Section ===== */
 .submission-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-card);
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
 }
 
+/* Input Group */
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
+  text-align: left;
 }
 
+/* Input Label */
 .form-group label {
-  font-weight: 600;
-  color: #333;
+  font-size: 13px;
+  font-weight: 700;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 2px;
 }
 
+/* Input Wrapper */
+.form-group .input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Input Field */
 .form-group input,
 .form-group select {
-  padding: 0.75rem;
-  border: 2px solid #e1e5e9;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
+  width: 100%;
+  padding: 16px 16px 16px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 15px;
+  color: #e5e7eb;
+  background: #0f172a;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  font-weight: 500;
+  font-family: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .form-group input:focus,
 .form-group select:focus {
-  outline: none;
-  border-color: #007bff;
+  border-color: var(--emerald-400);
+  background: #0f172a !important;
+  box-shadow: var(--shadow-focus);
+  color: #e5e7eb !important;
+  transform: translateY(-1px);
 }
 
+/* Ensure password dots are visible */
+input[type="password"] {
+  color: #ffffff;
+}
+
+/* Autofill override to prevent white background */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus,
+.form-group input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+  -webkit-text-fill-color: #e5e7eb !important;
+  background: #0f172a !important;
+  border-color: var(--emerald-400) !important;
+}
+
+/* Select Options */
+.form-group select option {
+  color: #e5e7eb;
+  background: #0f172a;
+}
+
+/* Image Preview */
 .image-preview {
   margin-top: 1rem;
   text-align: center;
@@ -66,42 +135,256 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Messages */
 .message {
-  padding: 1rem;
-  border-radius: 4px;
-  font-weight: 500;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
   text-align: center;
+  margin-bottom: 20px;
 }
 
 .message.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: var(--emerald-200);
+  border: 2px solid var(--emerald-500);
+  color: var(--emerald-700);
 }
 
 .message.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  color: #991b1b;
 }
 
+/* Submit Button */
 .submit-btn {
-  padding: 0.75rem 2rem;
-  background-color: #007bff;
-  color: white;
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 16px;
   border: none;
-  border-radius: 4px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  box-shadow: var(--shadow-button);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.submit-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .submit-btn:hover:not(:disabled) {
-  background-color: #0056b3;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateY(-2px);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-button);
 }
 
 .submit-btn:disabled {
-  background-color: #6c757d;
+  opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.button-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ===== Webcam Modal ===== */
+.webcam-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.webcam-modal {
+  background: rgba(10, 25, 45, 0.95);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(0, 217, 255, 0.5);
+  border-radius: 20px;
+  padding: 30px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 0 60px rgba(0, 217, 255, 0.4);
+}
+
+.webcam-modal h2 {
+  color: var(--emerald-500);
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.video-container {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.webcam-video {
+  width: 100%;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.capture-status {
+  text-align: center;
+  color: #9ca3af;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn-capture,
+.btn-save,
+.btn-cancel {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-capture {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.btn-save {
+  background: rgba(255, 255, 255, 0.1);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.btn-cancel {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.btn-capture:hover:not(:disabled),
+.btn-save:hover:not(:disabled),
+.btn-cancel:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 640px) {
+  .receipt-submission .submission-form {
+    padding: 40px 32px;
+    max-width: 100%;
+  }
+
+  .submission-header h1 {
+    font-size: 28px;
+  }
+
+  .submission-header p {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group select {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+
+  .submit-btn {
+    font-size: 15px;
+    padding: 14px 20px;
+  }
+}
+
+@media (max-width: 375px) {
+  .receipt-submission .submission-form {
+    padding: 36px 28px;
+  }
+
+  .submission-header h1 {
+    font-size: 24px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .receipt-submission .submission-form {
+    max-width: 480px;
+  }
+}
+
+@media (min-width: 901px) {
+  .receipt-submission .submission-form {
+    max-width: 500px;
+    padding: 52px 44px;
+  }
+
+  .submission-header h1 {
+    font-size: 36px;
+  }
+
+  .submit-btn {
+    font-size: 17px;
+  }
+}
+
+/* ===== Accessibility ===== */
+.form-group input:focus-visible,
+.form-group select:focus-visible,
+.submit-btn:focus-visible {
+  outline: 3px solid rgba(16, 185, 129, 0.4);
+  outline-offset: 2px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

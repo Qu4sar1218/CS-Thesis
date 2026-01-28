@@ -1,7 +1,11 @@
+@import './design-tokens.css';
+
 .receipt-verification {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+  min-height: 100vh;
+  background: var(--dashboard-bg);
+  font-family: Inter, system-ui;
+  padding: 32px 24px;
+  position: relative;
 }
 
 .verification-header {
@@ -10,12 +14,15 @@
 }
 
 .verification-header h1 {
-  color: #333;
+  color: white;
   margin-bottom: 0.5rem;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 .verification-header p {
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
   font-size: 1.1rem;
 }
 
@@ -40,13 +47,12 @@
 }
 
 .verification-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .receipts-list h2 {
-  color: #333;
+  color: #ffffff;
   margin-bottom: 1rem;
 }
 
@@ -63,22 +69,26 @@
 }
 
 .receipt-card {
-  border: 2px solid #e1e5e9;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.75rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: #fff;
+  backdrop-filter: blur(10px);
 }
 
 .receipt-card:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--emerald-500);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .receipt-card.selected {
-  border-color: #007bff;
-  background-color: #f8f9fa;
+  border-color: var(--emerald-500);
+  background: rgba(16, 185, 129, 0.1);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .receipt-header {
@@ -90,36 +100,42 @@
 
 .receipt-header h3 {
   margin: 0;
-  color: #333;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .status {
   padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .status.pending {
-  background-color: #fff3cd;
-  color: #856404;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
 }
 
 .receipt-info p {
   margin: 0.25rem 0;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
 }
 
 .receipt-detail {
-  background: #fff;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .receipt-detail h2 {
-  color: #333;
+  color: white;
   margin-bottom: 1rem;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .detail-content {
@@ -130,7 +146,8 @@
 
 .detail-info p {
   margin: 0.5rem 0;
-  color: #333;
+  color: white;
+  font-size: 14px;
 }
 
 .receipt-image {
@@ -138,15 +155,17 @@
 }
 
 .receipt-image h3 {
-  color: #333;
+  color: white;
   margin-bottom: 1rem;
+  font-size: 18px;
+  font-weight: 600;
 }
 
 .receipt-preview {
   max-width: 100%;
   max-height: 400px;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .verification-actions {
@@ -167,37 +186,58 @@
 }
 
 .btn.verify {
-  background-color: #28a745;
+  background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
   color: white;
+  box-shadow: var(--shadow-button);
 }
 
 .btn.verify:hover {
-  background-color: #218838;
+  background: linear-gradient(135deg, var(--emerald-600), var(--emerald-700));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .btn.reject {
-  background-color: #dc3545;
+  background: linear-gradient(135deg, var(--danger-red), #dc2626);
   color: white;
+  box-shadow: var(--shadow-button);
 }
 
 .btn.reject:hover {
-  background-color: #c82333;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .btn.cancel {
-  background-color: #6c757d;
-  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn.cancel:hover {
-  background-color: #5a6268;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn.delete {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: var(--shadow-button);
+}
+
+.btn.delete:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-button-hover);
 }
 
 .loading {
   text-align: center;
   padding: 4rem;
   font-size: 1.2rem;
-  color: #666;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 @media (max-width: 768px) {
