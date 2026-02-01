@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/StudentProfile.css';
+import AttendanceInsightsPanel from '../components/AttendanceInsightsPanel';
 
 export default function StudentProfile({ onBack, userInfo }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -120,6 +121,9 @@ export default function StudentProfile({ onBack, userInfo }) {
             </div>
           )}
         </div>
+
+        {/* Attendance Insights & Identity Activity Panel */}
+        <AttendanceInsightsPanel studentId={userInfo?.student_id} />
 
         {/* Attendance Section */}
         <div className="attendance-section">

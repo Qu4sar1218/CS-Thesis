@@ -1439,6 +1439,139 @@ async def get_student_attendance(student_id: str, date_from: str = None, date_to
 
     return {"student_id": student_id, "attendance": records}
 
+@app.get("/analytics/student/{student_id}/insights")
+async def get_student_attendance_insights(student_id: str):
+    """Get comprehensive attendance insights for a student."""
+    # Get total attendance summary
+    pipeline = [
+        {"$match": {"student_id": student_id}},
+        {"$group": {
+            "_id": None,
+            "total_sessions": {"$sum": 1},
+            "present_count": {"$sum": {"$cond": [{"$eq": ["$status", "present"]}, 1, 0]}},
+            "absent_count": {"$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}}
+        }}
+    ]
+
+    summary_result = await db.attendance.aggregate(pipeline).to_list(length=1)
+    summary = summary_result[0] if summary_result else {"total_sessions": 0, "present_count": 0, "absent_count": 0}
+
+    total_sessions = summary["total_sessions"]
+    attendance_percentage = (summary["present_count"] / total_sessions * 100) if total_sessions > 0 else 0
+
+    # Determine attendance status
+    if attendance_percentage >= 90:
+        status = "Good Standing"
+    elif 75 <= attendance_percentage < 90:
+        status = "Warning"
+    else:
+        status = "At Risk"
+
+    # Get subject-based breakdown
+    subject_pipeline = [
+        {"$match": {"student_id": student_id}},
+        {"$lookup": {
+            "from": "classes",
+            "localField": "class_id",
+            "foreignField": "_id",
+            "as": "class_info"
+        }},
+        {"$unwind": {"path": "$class_info", "preserveNullAndEmptyArrays": True}},
+        {"$group": {
+            "_id": {
+                "subject": {"$ifNull": ["$class_info.class_name", "$subject"]},
+                "class_id": "$class_id"
+            },
+            "total_sessions": {"$sum": 1},
+            "present_count": {"$sum": {"$cond": [{"$eq": ["$status", "present"]}, 1, 0]}},
+            "absent_count": {"$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}}
+        }},
+        {"$project": {
+            "subject": "$_id.subject",
+            "total_sessions": 1,
+            "present_count": 1,
+            "absent_count": 1,
+            "attendance_percentage": {
+                "$multiply": [{"$divide": ["$present_count", "$total_sessions"]}, 100]
+            }
+        }},
+        {"$sort": {"subject": 1}}
+    ]
+
+    subject_breakdown = []
+    async for doc in db.attendance.aggregate(subject_pipeline):
+        subject_breakdown.append({
+            "subject": doc["subject"] or "Unknown Subject",
+            "attendance_percentage": round(doc["attendance_percentage"], 1),
+            "present_count": doc["present_count"],
+            "absent_count": doc["absent_count"]
+        })
+
+    # Get face recognition activity log (assuming face_logs collection exists)
+    face_logs = []
+    try:
+        face_logs_collection = db.face_logs
+        async for log in face_logs_collection.find({"student_id": student_id}).sort("timestamp", -1).limit(10):
+            face_logs.append({
+                "date": log.get("date", ""),
+                "time": log.get("time", ""),
+                "subject": log.get("subject", "N/A"),
+                "result": log.get("result", "Unknown")
+            })
+    except:
+        # If face_logs collection doesn't exist, use attendance records with recognition data
+        recognition_pipeline = [
+            {"$match": {"student_id": student_id, "status": "present"}},
+            {"$lookup": {
+                "from": "classes",
+                "localField": "class_id",
+                "foreignField": "_id",
+                "as": "class_info"
+            }},
+            {"$unwind": {"path": "$class_info", "preserveNullAndEmptyArrays": True}},
+            {"$project": {
+                "date": 1,
+                "time": {"$ifNull": ["$check_in_time", "N/A"]},
+                "subject": {"$ifNull": ["$class_info.class_name", "$subject"]},
+                "result": "Verified"  # Assuming present means verified
+            }},
+            {"$sort": {"timestamp": -1}},
+            {"$limit": 10}
+        ]
+
+        async for doc in db.attendance.aggregate(recognition_pipeline):
+            face_logs.append({
+                "date": doc["date"],
+                "time": doc["time"],
+                "subject": doc["subject"] or "Unknown Subject",
+                "result": doc["result"]
+            })
+
+    # Generate smart feedback
+    feedback = generate_attendance_feedback(attendance_percentage, status)
+
+    return {
+        "attendance_summary": {
+            "total_sessions": total_sessions,
+            "present_count": summary["present_count"],
+            "absent_count": summary["absent_count"],
+            "attendance_percentage": round(attendance_percentage, 1),
+            "status": status
+        },
+        "subject_breakdown": subject_breakdown,
+        "face_recognition_logs": face_logs,
+        "smart_feedback": feedback
+    }
+
+def generate_attendance_feedback(attendance_percentage: float, status: str) -> str:
+    """Generate rule-based attendance feedback message."""
+    if status == "Good Standing":
+        return "Excellent attendance. Keep it up!"
+    elif status == "Warning":
+        return "Your attendance is in the warning zone. Please maintain regular attendance."
+    else:  # At Risk
+        return "Your attendance is at risk. Please attend classes regularly to avoid academic penalties."
+
 @app.get("/analytics/class/{class_id}")
 async def get_class_attendance(class_id: str, date_from: str = None, date_to: str = None):
     """Get attendance records for a specific class."""
