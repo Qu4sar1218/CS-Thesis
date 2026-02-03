@@ -3,6 +3,24 @@ import "../styles/StudentList.css";
 
 const API_BASE_URL = "http://localhost:8000";
 
+// Helper function to format student names as: Firstname M. Lastname
+const formatStudentName = (firstName, middleName, lastName) => {
+  if (!firstName || !lastName) {
+    return `${firstName || ''} ${lastName || ''}`.trim();
+  }
+
+  // Capitalize each word in firstName and lastName
+  const capitalize = (str) => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+
+  const capitalizedFirst = capitalize(firstName);
+  const capitalizedLast = capitalize(lastName);
+
+  // Get middle initial if middle name exists, capitalized
+  const middleInitial = middleName ? ` ${middleName.charAt(0).toUpperCase()}.` : '';
+
+  return `${capitalizedFirst}${middleInitial} ${capitalizedLast}`.trim();
+};
+
 export default function StudentList({ onBack }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +63,7 @@ export default function StudentList({ onBack }) {
       // Transform API data to match component expectations
       const transformedStudents = data.students.map(student => ({
         id: student.student_id,
-        name: `${student.first_name} ${student.last_name}`,
+        name: formatStudentName(student.first_name, student.middle_name, student.last_name),
         course: student.course,
         year: student.year,
         section: 'A', // Default section since not in API

@@ -58,34 +58,11 @@ function Login({ onLogin }) {
             userInfo.last_name = data.last_name || '';
             userInfo.full_name = `${data.first_name || ''} ${data.last_name || ''}`.trim();
           } else {
-            // For students, fetch additional info from database
-            try {
-              const fetchId = user_id;
-              console.log("🔍 Fetching user data for ID:", fetchId, "Role:", role);
-              const endpoint = `/students/${fetchId}`;
-              console.log("🌐 Fetch endpoint:", endpoint);
-              const userResponse = await fetch(`http://localhost:8000${endpoint}`, {
-                headers: {
-                  'Authorization': `Bearer ${data.access_token}`,
-                },
-              });
-              console.log("📥 User fetch response status:", userResponse.status);
-              if (userResponse.ok) {
-                const userData = await userResponse.json();
-                console.log("📦 User data received:", userData);
-                userInfo.full_name = `${userData.first_name} ${userData.last_name}`.trim();
-                userInfo.email = userData.email;
-              } else {
-                const errorText = await userResponse.text();
-                console.error("❌ User fetch failed:", userResponse.status, errorText);
-                // Fallback if fetch fails - use backend provided name or empty
-                userInfo.full_name = data.full_name || '';
-              }
-            } catch (error) {
-              console.error('💥 Error fetching user name:', error);
-              // Fallback if fetch fails - use backend provided name or empty
-              userInfo.full_name = data.full_name || '';
-            }
+            // For students, use data from login response
+            userInfo.full_name = data.full_name || '';
+            userInfo.course = data.course || '';
+            userInfo.year = data.year || '';
+            userInfo.user_id = data.user_id || user_id;
           }
 
           console.log("✅ Final userInfo:", userInfo);

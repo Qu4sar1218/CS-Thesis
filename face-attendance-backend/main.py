@@ -125,6 +125,29 @@ def detect_and_encode_face(image_path):
 # Password hashing
 pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
+# Name formatting helper
+def format_student_name(first_name, middle_name, last_name):
+    """Format student name as: Firstname Lastname M."""
+    if not first_name or not last_name:
+        return f"{first_name or ''} {last_name or ''}".strip()
+
+    # Capitalize each word in first_name and last_name
+    def capitalize(s):
+        return ' '.join(word.capitalize() for word in s.split())
+
+    capitalized_first = capitalize(first_name)
+    capitalized_last = capitalize(last_name)
+
+    last_parts = capitalized_last.split()
+    if len(last_parts) > 1:
+        # Handle multiple words in last name
+        middle_initial = f" {middle_name[0].upper()}." if middle_name else ""
+        return f"{capitalized_first} {last_parts[0]}{middle_initial} {' '.join(last_parts[1:])}".strip()
+    else:
+        # Standard format
+        middle_initial = f" {middle_name[0].upper()}." if middle_name else ""
+        return f"{capitalized_first}{middle_initial} {capitalized_last}".strip()
+
 # Security
 security = HTTPBearer()
 
@@ -407,7 +430,7 @@ async def load_faces_from_db():
                 first_name = student.get("first_name", "")
                 middle_name = student.get("middle_name", "")
                 last_name = student.get("last_name", "")
-                full_name = f"{first_name} {middle_name} {last_name}".strip()
+                full_name = format_student_name(first_name, middle_name, last_name)
                 course = student.get("course", "Unknown")
                 year = student.get("year", "Unknown")
                 enc_list = student.get("face_encodings", [])
@@ -568,7 +591,11 @@ def recognition_loop():
                                     today_records = [r for r in attendance_records if r['student_id'] == student_id and r['date'] == datetime.now().strftime('%Y-%m-%d')]
                                     if not today_records:
                                         record = {
-                                            'name': name,
+                                            'name': format_student_name(
+                                                student.get("first_name", ""),
+                                                student.get("middle_name", ""),
+                                                student.get("last_name", "")
+                                            ),
                                             'student_id': student_id,
                                             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                                             'date': datetime.now().strftime('%Y-%m-%d'),
@@ -598,7 +625,11 @@ def recognition_loop():
                                 with recently_recognized_lock:
                                     global recently_recognized
                                     recently_recognized = {
-                                        'name': name,
+                                        'name': format_student_name(
+                                            student.get("first_name", ""),
+                                            student.get("middle_name", ""),
+                                            student.get("last_name", "")
+                                        ),
                                         'student_id': student_id,
                                         'time': current_time,
                                         'date': datetime.now().strftime('%Y-%m-%d'),
@@ -834,8 +865,12 @@ async def login(user_credentials: dict):
         student = await db.students.find_one({"student_id": username})
         if student and verify_password(password, student.get("hashed_password", "")):
             access_token = create_access_token(data={"sub": username, "role": "student"})
-            full_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip()
-            return {"access_token": access_token, "token_type": "bearer", "full_name": full_name}
+            full_name = format_student_name(
+                student.get('first_name', ''),
+                student.get('middle_name', ''),
+                student.get('last_name', '')
+            )
+            return {"access_token": access_token, "token_type": "bearer", "full_name": full_name, "course": student.get("course", ""), "year": student.get("year", ""), "user_id": student.get("student_id")}
 
         # Check teachers collection by username (for teachers with usernames like 'teacher1')
         teacher = await db.teachers.find_one({"username": username})
@@ -905,6 +940,10 @@ async def get_student(student_id: str):
 @app.put("/students/{student_id}")
 async def update_student(student_id: str, student_update: dict):
     """Update student information."""
+    # Hash password if provided
+    if "password" in student_update:
+        student_update["hashed_password"] = get_password_hash(student_update.pop("password"))
+
     result = await db.students.update_one(
         {"student_id": student_id},
         {"$set": student_update}
@@ -977,6 +1016,88 @@ async def delete_student(student_id: str):
         raise HTTPException(status_code=404, detail="Student not found")
     return {"message": "Student deleted successfully"}
 
+
+@app.get("/api/student/schedule/{student_id}")
+async def get_student_schedule(student_id: str):
+    """Get schedule for a specific student."""
+    try:
+        # Find all classes where the student is enrolled
+        classes = []
+        async for class_doc in db.classes.find({"enrolled_students": student_id}):
+            classes.append(class_doc)
+
+        if not classes:
+            return {"schedule": []}
+
+        schedule_data = []
+
+        for class_doc in classes:
+            schedule_str = class_doc.get("schedule", "")
+            if not schedule_str:
+                continue
+
+            # Parse schedule string like "MWF 9:00-10:00"
+            parts = schedule_str.split()
+            if len(parts) < 2:
+                continue
+
+            days_str = parts[0]
+            time_range = parts[1]
+
+            # Split time range
+            if '-' not in time_range:
+                continue
+            start_time, end_time = time_range.split('-', 1)
+
+            # Parse days (same order as is_class_scheduled_today function)
+            possible_days = ['Su', 'Th', 'M', 'T', 'W', 'F', 'S']
+            day_names = ['Sunday', 'Thursday', 'Monday', 'Tuesday', 'Wednesday', 'Friday', 'Saturday']
+
+            # Parse days_str into individual day codes
+            scheduled_days = []
+            i = 0
+            while i < len(days_str):
+                found = False
+                for day in possible_days:
+                    if days_str.startswith(day, i):
+                        scheduled_days.append(day)
+                        i += len(day)
+                        found = True
+                        break
+                if not found:
+                    i += 1
+
+            # Get teacher information
+            teacher_id = class_doc.get("teacher_id", "")
+            teacher = await db.teachers.find_one({"teacher_id": teacher_id})
+            instructor_name = "Unknown"
+            if teacher:
+                instructor_name = format_student_name(
+                    teacher.get("first_name", ""),
+                    teacher.get("middle_name", ""),
+                    teacher.get("last_name", "")
+                )
+
+            # Create schedule entry for each day
+            for day_code in scheduled_days:
+                day_index = possible_days.index(day_code)
+                day_name = day_names[day_index]
+
+                schedule_data.append({
+                    "subject_name": class_doc.get("class_name", "Unknown Subject"),
+                    "subject_code": class_doc.get("class_code", ""),
+                    "day": day_name,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "instructor": instructor_name,
+                    "room": class_doc.get("room", "TBA")
+                })
+
+        return {"schedule": schedule_data}
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching schedule for student {student_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching schedule: {str(e)}")
 
 # === TEACHER MANAGEMENT === #
 @app.post("/teachers")

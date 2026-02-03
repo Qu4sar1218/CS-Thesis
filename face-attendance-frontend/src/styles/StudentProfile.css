@@ -73,14 +73,14 @@
   flex: 1;
 }
 
-.student-name {
+.profile-student-name {
   margin: 0 0 8px 0;
   color: white;
   font-size: 28px;
   font-weight: 600;
 }
 
-.student-id,
+.profile-student-id,
 .student-email {
   margin: 0;
   color: rgba(255, 255, 255, 0.7);
@@ -369,7 +369,7 @@
     font-size: 24px;
   }
 
-  .student-name {
+  .profile-student-name {
     font-size: 24px;
   }
 

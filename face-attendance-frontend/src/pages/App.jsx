@@ -9,6 +9,7 @@ import TeacherClassRoster from "./TeacherClassRoster.jsx";
 import StudentDashboard from "./StudentDashboard.jsx";
 
 import StudentProfile from "./StudentProfile.jsx";
+import StudentSchedule from "./StudentSchedule.jsx";
 import StatusPanel from "./StatusPanel.js";
 import EventManagement from "./EventManagement.jsx";
 import "../styles/App.css";
@@ -381,6 +382,10 @@ function App() {
 
   if (currentPage === "profile") {
     return <StudentProfile onBack={() => setCurrentPage("dashboard")} userInfo={userInfo} />;
+  }
+
+  if (currentPage === "schedule") {
+    return <StudentSchedule onBack={() => setCurrentPage("dashboard")} userInfo={userInfo} />;
   }
 
   if (showAttendanceMode && !showStatusPanel) return <AttendanceMode />;

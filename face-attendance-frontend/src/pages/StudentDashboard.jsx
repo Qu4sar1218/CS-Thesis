@@ -1,15 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import '../styles/StudentDashboard.css';
 
 export default function StudentDashboard({ onLogout, onFaceRecognition, onNavigate, userInfo }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [studentName, setStudentName] = useState('');
+
+  const formatName = (first, middle, last) => {
+    if (!first || !last) return `${first || ''} ${last || ''}`.trim();
+
+    const capitalize = (s) => s.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+
+    const capitalizedFirst = capitalize(first);
+    const capitalizedLast = capitalize(last);
+
+    const lastParts = capitalizedLast.split(' ');
+
+    if (lastParts.length > 1) {
+      // Assume middle initial is already included in the last name
+      return `${capitalizedFirst} ${capitalizedLast}`.trim();
+    } else {
+      const middleInitial = middle ? ` ${middle.charAt(0).toUpperCase()}.` : '';
+      return `${capitalizedFirst}${middleInitial} ${capitalizedLast}`.trim();
+    }
+  };
+
+  useEffect(() => {
+    const fetchStudentName = async () => {
+      if (userInfo?.user_id) {
+        try {
+          const response = await fetch(`http://localhost:8000/students/${userInfo.user_id}`);
+          if (response.ok) {
+            const data = await response.json();
+            const fullName = formatName(data.first_name, data.middle_name, data.last_name);
+            setStudentName(fullName);
+          }
+        } catch (error) {
+          console.error('Error fetching student name:', error);
+        }
+      }
+    };
+    fetchStudentName();
+  }, [userInfo?.user_id]);
 
   return (
     <div className="student-dashboard-wrapper">
 
       {/* Mobile hamburger button */}
       {!isOpen && (
-        <button 
+        <button
           className="mobile-menu-btn"
           onClick={() => setIsOpen(true)}
           aria-label="Open menu"
@@ -20,7 +58,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
 
       {/* Sidebar */}
       <aside className={`student-sidebar ${isOpen ? 'open' : 'closed'}`}>
-        
+
         {/* Sidebar Header */}
         <div className="sidebar-header">
           <div className="logo-section">
@@ -39,7 +77,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
 
           {/* Mobile close X */}
           {isOpen && (
-            <button 
+            <button
               className="mobile-close-btn inline-close"
               onClick={() => setIsOpen(false)}
               aria-label="Close menu"
@@ -54,7 +92,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
           <div className="nav-section">
 
 
-            <button className="nav-item">
+            <button className="nav-item" onClick={() => onNavigate && onNavigate("schedule")}>
               <span className="nav-icon">📅</span>
               {isOpen && <span className="nav-text">Schedule</span>}
             </button>
@@ -105,7 +143,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
       {/* Content */}
       <main className="student-main-content">
         <div className="content-header">
-          <h1>Welcome, {userInfo?.full_name ? ` ${userInfo.full_name}` : ''}</h1>
+          <h1>Welcome, {studentName ? ` ${studentName}` : ' Student'}</h1>
           <p>View your attendance and schedule here.</p>
         </div>
 

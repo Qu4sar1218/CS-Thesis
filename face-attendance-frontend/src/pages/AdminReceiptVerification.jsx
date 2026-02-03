@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import "../styles/AdminReceiptVerification.css";
+
+// Helper function to format student names as: Firstname Lastname M.
+const formatStudentName = (firstName, middleName, lastName) => {
+  if (!firstName || !lastName) {
+    return `${firstName || ''} ${lastName || ''}`.trim();
+  }
+
+  // Get middle initial if middle name exists
+  const middleInitial = middleName ? ` ${middleName[0]}.` : '';
+
+  return `${firstName} ${lastName}${middleInitial}`.trim();
+};
+
 //add filter for receipts per course
 function AdminReceiptVerification({ onBack }) {
   const [receipts, setReceipts] = useState([]);
@@ -36,7 +49,11 @@ function AdminReceiptVerification({ onBack }) {
       const receiptsWithStudents = receiptsData.map(receipt => ({
         ...receipt,
         student_name: studentsMap[receipt.student_id] ?
-          `${studentsMap[receipt.student_id].first_name} ${studentsMap[receipt.student_id].last_name}` : 'Unknown',
+          formatStudentName(
+            studentsMap[receipt.student_id].first_name,
+            studentsMap[receipt.student_id].middle_name,
+            studentsMap[receipt.student_id].last_name
+          ) : 'Unknown',
         student_course: studentsMap[receipt.student_id]?.course || 'Unknown',
         student_year: studentsMap[receipt.student_id]?.year || 'Unknown'
       }));
