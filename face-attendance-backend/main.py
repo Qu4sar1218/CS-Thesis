@@ -278,6 +278,31 @@ async def save_attendance_to_db(record: dict):
     except Exception as e:
         logger.error(f"❌ Failed to save attendance to DB: {e}")
 
+async def update_attendance_status(student_id: str, class_id: str, status: str):
+    """Update attendance status for a student in a class."""
+    try:
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        attendance_collection = db.attendance
+
+        # Update existing absent record to present
+        result = await attendance_collection.update_one(
+            {
+                "student_id": student_id,
+                "class_id": class_id,
+                "date": current_date,
+                "status": "absent"
+            },
+            {"$set": {"status": status}}
+        )
+
+        if result.modified_count > 0:
+            logger.info(f"✅ Updated attendance status for {student_id} in class {class_id} to {status}")
+        else:
+            logger.warning(f"⚠️ No absent record found to update for {student_id} in class {class_id}")
+
+    except Exception as e:
+        logger.error(f"❌ Failed to update attendance status for {student_id}: {e}")
+
 # Pydantic Models
 class UserBase(BaseModel):
     username: str
@@ -514,10 +539,14 @@ def open_camera():
 def recognition_loop():
     global latest_frame, recognition_running, stop_streaming
 
+    logger.info("🎬 Starting recognition loop...")
     cap = open_camera()
     if not cap:
+        logger.error("❌ Failed to open camera, stopping recognition")
         recognition_running = False
         return
+
+    logger.info("✅ Camera opened successfully, starting recognition")
 
     frame_count = 0
 
@@ -699,10 +728,19 @@ def start():
     if recognition_running:
         return {"status": "already_running"}
 
+    logger.info("🚀 Starting face recognition...")
     recognition_running = True
     stop_streaming = False
 
-    threading.Thread(target=recognition_loop, daemon=True).start()
+    try:
+        thread = threading.Thread(target=recognition_loop, daemon=True)
+        thread.start()
+        logger.info("✅ Recognition thread started")
+    except Exception as e:
+        logger.error(f"❌ Failed to start recognition thread: {e}")
+        recognition_running = False
+        return {"status": "failed", "error": str(e)}
+
     return {"status": "started"}
 
 
