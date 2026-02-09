@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import "../styles/RegisterStudent.css";
 import "../styles/WebcamModal.css";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export default function StudentRegis({ onBack }) {
   const [formData, setFormData] = useState({
@@ -81,8 +81,9 @@ export default function StudentRegis({ onBack }) {
 
       if (response.ok) {
         setStudentId(generatedId);
+        const displayName = middleName ? `${firstName} ${middleName.charAt(0)}. ${lastName}` : `${firstName} ${lastName}`;
         setMessage(
-          `✅ Student "${firstName} ${lastName}" registered successfully! Student ID: STU ${generatedId}. Now train face recognition data.`
+          `✅ Student "${displayName}" registered successfully! Student ID: STU ${generatedId}. Now train face recognition data.`
         );
       } else {
         setMessage(`❌ Registration failed: ${result.detail || result.error}`);
@@ -193,27 +194,28 @@ export default function StudentRegis({ onBack }) {
     let failCount = 0;
 
     try {
-      // Send each image to the backend
+      // Send each image to the face training server
       for (let i = 0; i < capturedImages.length; i++) {
         const formData = new FormData();
+        formData.append("student_id", studentId);
         formData.append("image", capturedImages[i], `face_${i + 1}.jpg`);
 
         try {
-          const response = await fetch(`${API_BASE_URL}/students/${studentId}/face-encodings`, {
+          const response = await fetch(`http://127.0.0.1:5000/train-face`, {
             method: "POST",
             body: formData,
           });
 
           const result = await response.json();
 
-          if (response.ok) {
+          if (response.ok && result.encodings_saved) {
             successCount++;
             setTrainingStatus(
               `✅ Processing image ${i + 1}/${capturedImages.length}...`
             );
           } else {
             failCount++;
-            console.error(`Image ${i + 1} failed:`, result.detail || result.error);
+            console.error(`Image ${i + 1} failed:`, result.error || result.detail);
           }
         } catch (error) {
           failCount++;
@@ -277,7 +279,7 @@ export default function StudentRegis({ onBack }) {
 
   const fetchCourses = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/courses`);
+      const response = await fetch(`${API_BASE_URL}/classes/courses`);
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
@@ -333,7 +335,7 @@ export default function StudentRegis({ onBack }) {
         </label>
 
         <label>
-          Middle Name:
+          Middle Name (Optional):
           <input
             type="text"
             name="middleName"

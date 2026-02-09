@@ -35,9 +35,9 @@ function AdminReceiptVerification({ onBack }) {
 
   const fetchReceipts = useCallback(async () => {
     try {
-      const receiptsData = (await axios.get(`${BACKEND_URL}/receipts`)).data.receipts || [];
+      const receiptsData = (await axios.get(`${BACKEND_URL}/events/receipts`)).data.receipts || [];
       const studentsData = (await axios.get(`${BACKEND_URL}/students`)).data.students || [];
-      const coursesData = (await axios.get(`${BACKEND_URL}/courses`)).data.courses || [];
+      const coursesData = (await axios.get(`${BACKEND_URL}/classes/courses`)).data.courses || [];
 
       // Create a map of student_id to student data
       const studentsMap = {};
@@ -103,7 +103,7 @@ function AdminReceiptVerification({ onBack }) {
     setMessage("");
 
     try {
-      await axios.put(`${BACKEND_URL}/receipts/${selectedReceipt._id}/verify`, {
+      await axios.put(`${BACKEND_URL}/events/receipts/${selectedReceipt._id}/verify`, {
         status: status,
         verified_by: "admin" // In a real app, this would be the current admin's ID
       });
@@ -132,7 +132,7 @@ function AdminReceiptVerification({ onBack }) {
     setMessage("");
 
     try {
-      await axios.delete(`${BACKEND_URL}/receipts/${selectedReceipt._id}`);
+      await axios.delete(`${BACKEND_URL}/events/receipts/${selectedReceipt._id}`);
       setMessage("Receipt deleted successfully!");
       // Refresh receipts
       await fetchReceipts();
