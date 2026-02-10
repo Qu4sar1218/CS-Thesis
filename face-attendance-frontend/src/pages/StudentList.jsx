@@ -3,24 +3,22 @@ import "../styles/StudentList.css";
 
 const API_BASE_URL = "http://localhost:8000";
 
-// Helper function to format student names as: Firstname M. Lastname (if middle name provided)
+// Helper function to format student names as: Firstname M. Lastname
 const formatStudentName = (firstName, middleName, lastName) => {
   if (!firstName || !lastName) {
     return `${firstName || ''} ${lastName || ''}`.trim();
   }
 
-  // Capitalize each word in a string
+  // Capitalize each word in firstName and lastName
   const capitalize = (str) => str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 
   const capitalizedFirst = capitalize(firstName);
   const capitalizedLast = capitalize(lastName);
 
-  if (middleName && middleName.trim()) {
-    const middleInitial = capitalize(middleName.trim()).charAt(0) + '.';
-    return `${capitalizedFirst} ${middleInitial} ${capitalizedLast}`;
-  } else {
-    return `${capitalizedFirst} ${capitalizedLast}`;
-  }
+  // Get middle initial if middle name exists, capitalized
+  const middleInitial = middleName ? ` ${middleName.charAt(0).toUpperCase()}.` : '';
+
+  return `${capitalizedFirst}${middleInitial} ${capitalizedLast}`.trim();
 };
 
 export default function StudentList({ onBack }) {
@@ -165,38 +163,18 @@ export default function StudentList({ onBack }) {
     setIsViewModalOpen(true);
   };
 
-  const handleEdit = async (student) => {
+  const handleEdit = (student) => {
     setSelectedStudent(student);
-    try {
-      const response = await fetch(`${API_BASE_URL}/students/${student.id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch student details');
-      }
-      const data = await response.json();
-      setEditForm({
-        id: data.student_id,
-        firstName: data.first_name,
-        middleName: data.middle_name || '',
-        lastName: data.last_name,
-        course: data.course,
-        year: data.year,
-        email: data.email,
-        contact: data.guardian_contact || '',
-        section: data.section || ''
-      });
-      setIsEditModalOpen(true);
-    } catch (error) {
-      setError(`Error fetching student details: ${error.message}`);
-    }
+    setEditForm({ ...student });
+    setIsEditModalOpen(true);
   };
 
   const handleSaveEdit = async () => {
     try {
       const updateData = {
         student_id: editForm.id,
-        first_name: editForm.firstName,
-        middle_name: editForm.middleName || null,
-        last_name: editForm.lastName,
+        first_name: editForm.name.split(' ')[0] || editForm.name,
+        last_name: editForm.name.split(' ').slice(1).join(' ') || '',
         course: editForm.course,
         year: editForm.year,
         email: editForm.email,
@@ -483,27 +461,11 @@ export default function StudentList({ onBack }) {
             <h2>Edit Student</h2>
             <form className="edit-form">
               <div className="form-group">
-                <label>First Name:</label>
+                <label>Name:</label>
                 <input
                   type="text"
-                  value={editForm.firstName}
-                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Middle Name (Optional):</label>
-                <input
-                  type="text"
-                  value={editForm.middleName}
-                  onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
-                />
-              </div>
-              <div className="form-group">
-                <label>Last Name:</label>
-                <input
-                  type="text"
-                  value={editForm.lastName}
-                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                 />
               </div>
               <div className="form-group">

@@ -1,12 +1,13 @@
-# TODO: Complete Refactoring - Move Database Codes from main.py to database.py and Switch to main_new.py
+# TODO: Move Database Codes from main.py to database.py
 
 ## Steps to Complete
 
-- [ ] Update database.py to import Pydantic models from models.py instead of defining them
-- [ ] Move all remaining database-related API routes from main.py to database.py's router (students, teachers, classes, attendance, events, receipts, analytics, db views)
-- [ ] Update main.py to import the router from database.py and include it in the FastAPI app
-- [ ] Remove the moved routes and models from main.py, keeping only face recognition, camera, streaming, and non-database routes
-- [ ] Ensure main.py imports necessary functions from database.py and models.py
-- [ ] Rename main_new.py to main.py to make it the main entry point
-- [ ] Test the application to ensure database operations work correctly
-- [ ] Verify that all routes are accessible and functioning
+- [x] Move all Pydantic models (UserBase, StudentBase, etc.) from main.py to database.py
+- [x] Move authentication utilities (verify_password, get_password_hash, create_access_token) from main.py to database.py
+- [x] Move attendance functions (save_attendance_to_db, update_attendance_status) from main.py to database.py
+- [x] Create an APIRouter in database.py and move all database-related API routes (students, teachers, classes, attendance, events, receipts, analytics, db views) to it
+- [x] Update main.py to import the router from database.py and include it in the FastAPI app
+- [x] Remove the moved code from main.py and add necessary imports
+- [x] Ensure face recognition, camera, streaming, and non-database routes remain in main.py
+- [x] Test the application to ensure database operations work correctly
+- [x] Verify that all routes are accessible and functioning

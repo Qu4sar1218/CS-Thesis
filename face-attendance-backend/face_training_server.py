@@ -3,7 +3,13 @@ from flask_cors import CORS
 import os
 import cv2
 import numpy as np
-import face_recognition
+# Face recognition import
+try:
+    import face_recognition
+    HAVE_FACE_RECOG = True
+except Exception as e:
+    print(f"[WARN] face_recognition missing: {e}")
+    HAVE_FACE_RECOG = False
 import pickle
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -163,36 +169,25 @@ def detect_and_encode_face(image_path):
     try:
         # Load the image
         image = face_recognition.load_image_file(image_path)
-        print(f"📷 Loaded image with shape: {image.shape}")
 
-        # Try HOG model first (faster and more lenient), then CNN for accuracy
-        face_locations = face_recognition.face_locations(image, model="hog", number_of_times_to_upsample=2)
-        print(f"🔍 HOG model found {len(face_locations)} faces")
+        # Detect face locations
+        face_locations = face_recognition.face_locations(image, model="hog")
 
         if len(face_locations) == 0:
-            # Fallback to CNN model if HOG finds no faces
-            face_locations = face_recognition.face_locations(image, model="cnn", number_of_times_to_upsample=2)
-            print(f"🔍 CNN model found {len(face_locations)} faces")
+            return False, "No face detected in the image"
 
-        if len(face_locations) == 0:
-            return False, "No face detected in the image (tried both HOG and CNN models with upsampling)"
+        if len(face_locations) > 1:
+            return False, f"Multiple faces detected ({len(face_locations)}). Please ensure only one face is visible"
 
-        # Use the first face found (assuming it's the main subject)
-        # If multiple faces, we'll still process the first one
-        face_location = face_locations[0]
-        print(f"📍 Using face at location: {face_location}")
-
-        # Generate face encoding for the detected face
-        face_encodings = face_recognition.face_encodings(image, [face_location])
+        # Generate face encoding
+        face_encodings = face_recognition.face_encodings(image, face_locations)
 
         if len(face_encodings) == 0:
-            return False, "Could not generate face encoding from detected face"
+            return False, "Could not generate face encoding"
 
-        print(f"✅ Successfully generated face encoding with {len(face_encodings[0])} features")
         return True, face_encodings[0]
 
     except Exception as e:
-        print(f"❌ Error in face detection: {str(e)}")
         return False, f"Error processing image: {str(e)}"
 
 
@@ -239,35 +234,6 @@ def train_face_model(student_id):
 
         # Save encodings to storage
         save_encodings_to_storage(student_id, encodings)
-
-        # Also save to MongoDB for the main application
-        try:
-            db = MongoClient("mongodb://localhost:27017").InterACTS
-            student_collection = db.students
-
-            # Get existing encodings or initialize empty list
-            student = student_collection.find_one({"student_id": student_id})
-            if student:
-                existing_encodings = student.get("face_encodings", [])
-                if not isinstance(existing_encodings, list):
-                    existing_encodings = []
-
-                # Convert numpy arrays to lists for MongoDB
-                new_encodings_lists = [enc.tolist() for enc in encodings]
-
-                # Add new encodings
-                existing_encodings.extend(new_encodings_lists)
-
-                # Update student with new encodings
-                student_collection.update_one(
-                    {"student_id": student_id},
-                    {"$set": {"face_encodings": existing_encodings}}
-                )
-                print(f"✅ Saved {len(new_encodings_lists)} encodings to MongoDB for student {student_id}")
-            else:
-                print(f"⚠️ Student {student_id} not found in database, skipping MongoDB save")
-        except Exception as e:
-            print(f"❌ Error saving to MongoDB: {str(e)}")
 
         success_msg = f"Successfully trained {len(encodings)} face encoding(s) for student {student_id}"
         if failed_images:
@@ -345,8 +311,11 @@ def train_face():
         success, result = detect_and_encode_face(image_path)
 
         if not success:
-            # Keep the image for debugging even if face detection fails
-            print(f"⚠️ Face detection failed for {student_id}: {result} - Image kept at {image_path}")
+            # Remove the invalid image
+            try:
+                os.remove(image_path)
+            except:
+                pass
 
             return jsonify({
                 "error": result,

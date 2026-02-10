@@ -104,7 +104,7 @@ export default function TeacherList({ onBack }) {
       setEditForm({
         teacher_id: data.teacher_id,
         first_name: data.first_name,
-        middle_name: data.middle_name || '',
+        middle_name: data.middle_name,
         last_name: data.last_name,
         department: data.department,
         email: data.email
@@ -118,18 +118,12 @@ export default function TeacherList({ onBack }) {
   const handleSaveEdit = async () => {
     try {
       const updateData = {
-        first_name: editForm.first_name.trim(),
-        middle_name: editForm.middle_name.trim() === '' ? null : editForm.middle_name.trim(),
-        last_name: editForm.last_name.trim(),
+        first_name: editForm.first_name,
+        middle_name: editForm.middle_name || null,
+        last_name: editForm.last_name,
         department: editForm.department,
-        email: editForm.email.trim()
+        email: editForm.email
       };
-
-      // Validate required fields
-      if (!updateData.first_name || !updateData.last_name || !updateData.department || !updateData.email) {
-        setError('All fields except middle name are required.');
-        return;
-      }
 
       const response = await fetch(`${API_BASE_URL}/teachers/${selectedTeacher.teacher_id}`, {
         method: "PUT",
@@ -297,7 +291,7 @@ export default function TeacherList({ onBack }) {
       {isEditModalOpen && (
         <div className="modal-overlay" onClick={closeModals}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Edit Information</h2>
+            <h2>Edit Infortmation</h2>
             <form className="edit-form">
               <div className="form-group">
                 <label>First Name:</label>

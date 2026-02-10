@@ -502,8 +502,8 @@
 }
 
 .course-checkboxes {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -511,6 +511,7 @@
   background: rgba(255, 255, 255, 0.05);
   min-height: 60px;
   align-items: center;
+  justify-items: center;
 }
 
 .course-checkbox {
@@ -518,14 +519,13 @@
   align-items: center;
   gap: 5px;
   font-size: 15px;
-  color: #1f2937;
+  color: var(--white);
   cursor: pointer;
   padding: 5px 10px;
   border-radius: 5px;
   transition: background-color 0.3s ease;
-  flex: 0 0 auto;
+  flex: 0 0 120px;
   justify-content: flex-start;
-  background: rgba(255, 255, 255, 0.8);
 }
 
 .course-checkbox:hover {
@@ -535,46 +535,6 @@
 .course-checkbox input[type="checkbox"] {
   margin: 0;
   accent-color: #10b981;
-  width: 16px;
-  height: 16px;
-}
-
-/* Course Filter Styles */
-.course-filter {
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: center;
-}
-
-.course-filter label {
-  font-weight: 600;
-  color: var(--white);
-  font-size: 16px;
-}
-
-.course-filter select {
-  padding: 10px 15px;
-  border-radius: 8px;
-  border: 2px solid #a7f3d0;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--white);
-  font-size: 15px;
-  transition: all 0.3s ease;
-  min-width: 200px;
-}
-
-.course-filter select:focus {
-  outline: none;
-  border-color: #10b981;
-  background: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-.course-filter select option {
-  background: white;
-  color: #1f2937;
 }
 
 /* Legacy Course Select Styles (for backward compatibility) */
