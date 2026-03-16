@@ -41,6 +41,15 @@ export default function StudentList({ onBack }) {
   const [classesError, setClassesError] = useState(null);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [studentToEnroll, setStudentToEnroll] = useState(null);
+  
+  // State for enrollment type selection in modal
+  const [enrollType, setEnrollType] = useState(null); // 'single' or 'all'
+  
+  // State for "Enroll to All Subjects" feature
+  const [isEnrollAllModalOpen, setIsEnrollAllModalOpen] = useState(false);
+  const [studentToEnrollAll, setStudentToEnrollAll] = useState(null);
+  const [enrollAllLoading, setEnrollAllLoading] = useState(false);
+  const [enrollAllResult, setEnrollAllResult] = useState(null);
 
   // Fetch students, courses, and classes from API
   useEffect(() => {
@@ -227,7 +236,13 @@ export default function StudentList({ onBack }) {
 
   const handleEnroll = (student) => {
     setStudentToEnroll(student);
+    setEnrollType(null); // Reset enrollment type selection
     setIsEnrollModalOpen(true);
+  };
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   const handleEnrollStudent = async (classId) => {
@@ -238,6 +253,7 @@ export default function StudentList({ onBack }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ student_id: studentToEnroll.id }),
       });
@@ -256,12 +272,77 @@ export default function StudentList({ onBack }) {
     }
   };
 
+  // Handle "Enroll to All Subjects" - bulk enrollment based on course/strand
+  const handleEnrollToAllSubjects = (student) => {
+    if (!student?.course || !student.course.trim()) {
+      setStudentToEnrollAll(student);
+      setEnrollAllResult({
+        success: false,
+        message: "Cannot enroll: student has no course/strand assigned."
+      });
+      setIsEnrollAllModalOpen(true);
+      return;
+    }
+
+    setStudentToEnrollAll(student);
+    setEnrollAllResult(null);
+    setIsEnrollAllModalOpen(true);
+  };
+
+  const handleConfirmEnrollAll = async () => {
+    if (!studentToEnrollAll) return;
+
+    setEnrollAllLoading(true);
+    setEnrollAllResult(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/enrollments/student/${studentToEnrollAll.id}/all-subjects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enrolled_by: "admin" }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setEnrollAllResult({
+          success: true,
+          message: result.message,
+          enrolled_count: result.enrolled_count,
+          skipped_count: result.skipped_count,
+          total_classes_found: result.total_classes_found,
+          student_name: result.student_name,
+          course: result.course,
+          enrollments: result.enrollments || []
+        });
+      } else {
+        setEnrollAllResult({
+          success: false,
+          message: result.detail || result.error || "Failed to enroll student to all subjects"
+        });
+      }
+    } catch (error) {
+      setEnrollAllResult({
+        success: false,
+        message: `Error enrolling student: ${error.message}`
+      });
+    } finally {
+      setEnrollAllLoading(false);
+    }
+  };
+
   const closeModals = () => {
     setIsViewModalOpen(false);
     setIsEditModalOpen(false);
     setIsEnrollModalOpen(false);
+    setIsEnrollAllModalOpen(false);
     setSelectedStudent(null);
     setStudentToEnroll(null);
+    setStudentToEnrollAll(null);
+    setEnrollAllLoading(false);
+    setEnrollType(null);
   };
 
   if (loading) {
@@ -517,37 +598,127 @@ export default function StudentList({ onBack }) {
         </div>
       )}
 
-      {/* Enroll Modal */}
+      {/* Enroll Modal - with options for Single Class or All Subjects */}
       {isEnrollModalOpen && studentToEnroll && (
         <div className="modal-overlay" onClick={closeModals}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Enroll Student</h2>
-            <p>Enroll {studentToEnroll.name} (ID: {studentToEnroll.id}) in a class:</p>
-            <div className="classes-list">
-              {classesLoading ? (
-                <div>Loading classes...</div>
-              ) : classesError ? (
-                <div className="error">Error loading classes: {classesError}</div>
-              ) : (
-                classes.map((cls) => (
-                  <div key={cls._id} className="class-item">
-                    <div><strong>{cls.class_name}</strong> <span className="class-code">({cls.class_code})</span></div>
-                    <div className="class-details">
-                      <div className="class-teacher">Teacher: {cls.teacher_id}</div>
-                      <div className="class-room">Room: {cls.room}</div>
-                      <button
-                        className="enroll-btn"
-                        onClick={() => handleEnrollStudent(cls._id)}
-                      >
-                        Enroll
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <p>Enroll {studentToEnroll.name} (ID: {studentToEnroll.id})</p>
+            
+            {/* Enrollment Type Selection */}
+            {enrollType === null && (
+              <div className="enroll-options">
+                <p>Choose enrollment type:</p>
+                <button 
+                  className="enroll-option-btn" 
+                  onClick={() => setEnrollType('single')}
+                >
+                  <span className="btn-icon">📝</span>
+                  <span className="btn-text">Enroll to Single Class</span>
+                </button>
+                <button 
+                  className="enroll-option-btn" 
+                  onClick={() => {
+                    setEnrollType('all');
+                    handleEnrollToAllSubjects(studentToEnroll);
+                    setIsEnrollModalOpen(false);
+                  }}
+                >
+                  <span className="btn-icon">📚</span>
+                  <span className="btn-text">Enroll to All Subjects</span>
+                </button>
+              </div>
+            )}
+
+            {/* Single Class Enrollment */}
+            {enrollType === 'single' && (
+              <>
+                <p>Select a class to enroll in:</p>
+                <div className="classes-list">
+                  {classesLoading ? (
+                    <div>Loading classes...</div>
+                  ) : classesError ? (
+                    <div className="error">Error loading classes: {classesError}</div>
+                  ) : (
+                    classes.map((cls) => (
+                      <div key={cls._id} className="class-item">
+                        <div><strong>{cls.class_name}</strong> <span className="class-code">({cls.class_code})</span></div>
+                        <div className="class-details">
+                          <div className="class-teacher">Teacher: {cls.teacher_id}</div>
+                          <div className="class-room">Room: {cls.room}</div>
+                          <button
+                            className="enroll-btn"
+                            onClick={() => handleEnrollStudent(cls._id)}
+                          >
+                            Enroll
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="modal-actions">
+                  <button className="btn-secondary" onClick={() => setEnrollType(null)}>Back</button>
+                  <button className="btn-secondary" onClick={closeModals}>Cancel</button>
+                </div>
+              </>
+            )}
+
+            {/* If only showing initial options, just show cancel */}
+            {enrollType === null && (
+              <div className="modal-actions">
+                <button className="btn-secondary" onClick={closeModals}>Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Enroll To All Subjects Modal */}
+      {isEnrollAllModalOpen && studentToEnrollAll && (
+        <div className="modal-overlay" onClick={closeModals}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Enroll to All Subjects</h2>
+            <p>
+              Student: <strong>{studentToEnrollAll.name}</strong> (ID: {studentToEnrollAll.id})
+            </p>
+            <p>
+              Course/Strand: <strong>{studentToEnrollAll.course || "Not assigned"}</strong>
+            </p>
+
+            {!enrollAllResult && (
+              <p>
+                This will enroll the student in all classes mapped to their course/strand.
+                Existing enrollments will be skipped.
+              </p>
+            )}
+
+            {enrollAllResult && (
+              <div className={`enroll-all-result ${enrollAllResult.success ? "success" : "error"}`}>
+                <p>{enrollAllResult.message}</p>
+                {enrollAllResult.success && (
+                  <>
+                    <p>Enrolled: {enrollAllResult.enrolled_count || 0}</p>
+                    <p>Skipped (already enrolled): {enrollAllResult.skipped_count || 0}</p>
+                    <p>Total classes found: {enrollAllResult.total_classes_found || 0}</p>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={closeModals}>Cancel</button>
+              <button className="btn-secondary" onClick={closeModals} disabled={enrollAllLoading}>
+                {enrollAllResult ? "Close" : "Cancel"}
+              </button>
+              {!enrollAllResult && (
+                <button
+                  className="btn-primary"
+                  onClick={handleConfirmEnrollAll}
+                  disabled={enrollAllLoading || !studentToEnrollAll.course}
+                >
+                  {enrollAllLoading ? "Enrolling..." : "Confirm Enroll"}
+                </button>
+              )}
             </div>
           </div>
         </div>

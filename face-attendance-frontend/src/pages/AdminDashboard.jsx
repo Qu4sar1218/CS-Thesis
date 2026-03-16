@@ -4,9 +4,9 @@ import '../styles/AdminDashboard.css';
 export default function AdminDashboard({ onLogout, onTakeAttendance, starting, onNavigate }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleTakeAttendance = async () => {
+  const handleTakeAttendance = async (mode = 'class') => {
     if (typeof onTakeAttendance === "function") {
-      await onTakeAttendance();
+      await onTakeAttendance(mode);
     }
   };
 
@@ -60,11 +60,20 @@ export default function AdminDashboard({ onLogout, onTakeAttendance, starting, o
           <div className="nav-section">
             <button
               className="nav-item"
-              onClick={handleTakeAttendance}
+              onClick={() => handleTakeAttendance('class')}
               disabled={typeof onTakeAttendance !== 'function' || starting}
             >
               <span className="nav-icon">📸</span>
               {isOpen && <span className="nav-text">{starting ? "Starting…" : "Take Attendance"}</span>}
+            </button>
+
+            <button
+              className="nav-item"
+              onClick={() => handleTakeAttendance('hallway')}
+              disabled={typeof onTakeAttendance !== 'function' || starting}
+            >
+              <span className="nav-icon">🚪</span>
+              {isOpen && <span className="nav-text">{starting ? "Starting…" : "Hallway Mode"}</span>}
             </button>
 
             <button className="nav-item" onClick={() => onNavigate?.("studentRegis")}>

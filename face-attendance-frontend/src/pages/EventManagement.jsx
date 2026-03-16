@@ -8,6 +8,11 @@ export default function EventManagement({ onBack }) {
     name: "",
     description: "",
     date: "",
+    start_time: "",
+    end_time: "",
+    grace_period_minutes: 15,
+    late_limit_hours: 1,
+    absent_after_hours: 2,
     location: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,6 +25,11 @@ export default function EventManagement({ onBack }) {
       name: event.name,
       description: event.description,
       date: event.date,
+      start_time: event.start_time || "",
+      end_time: event.end_time || "",
+      grace_period_minutes: event.grace_period_minutes ?? 15,
+      late_limit_hours: event.late_limit_hours ?? 1,
+      absent_after_hours: event.absent_after_hours ?? 2,
       location: event.location
     });
   };
@@ -67,8 +77,13 @@ export default function EventManagement({ onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.description || !formData.date || !formData.location) {
+    if (!formData.name || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location || formData.late_limit_hours === "" || formData.absent_after_hours === "") {
       setMessage("Please fill in all fields.");
+      return;
+    }
+
+    if (formData.end_time <= formData.start_time) {
+      setMessage("End time must be after start time.");
       return;
     }
 
@@ -76,14 +91,21 @@ export default function EventManagement({ onBack }) {
     setMessage("");
 
     try {
+      const payload = {
+        ...formData,
+        grace_period_minutes: Number(formData.grace_period_minutes || 0),
+        late_limit_hours: Number(formData.late_limit_hours || 0),
+        absent_after_hours: Number(formData.absent_after_hours || 0)
+      };
+
       if (editingEvent) {
         // Update existing event
-        await axios.put(`${BACKEND_URL}/events/${editingEvent._id}`, formData);
+        await axios.put(`${BACKEND_URL}/events/${editingEvent._id}`, payload);
         setMessage("Event updated successfully!");
         setEditingEvent(null);
       } else {
         // Create new event
-        await axios.post(`${BACKEND_URL}/events`, formData);
+        await axios.post(`${BACKEND_URL}/events`, payload);
         setMessage("Event created successfully!");
       }
 
@@ -91,6 +113,11 @@ export default function EventManagement({ onBack }) {
         name: "",
         description: "",
         date: "",
+        start_time: "",
+        end_time: "",
+        grace_period_minutes: 15,
+        late_limit_hours: 1,
+        absent_after_hours: 2,
         location: ""
       });
       fetchEvents(); // Refresh the events list
@@ -114,6 +141,11 @@ export default function EventManagement({ onBack }) {
       name: "",
       description: "",
       date: "",
+      start_time: "",
+      end_time: "",
+      grace_period_minutes: 15,
+      late_limit_hours: 1,
+      absent_after_hours: 2,
       location: ""
     });
     setMessage("");
@@ -131,42 +163,115 @@ export default function EventManagement({ onBack }) {
         <div className="create-event-section">
           <h2>Create New Event</h2>
           <form onSubmit={handleSubmit} className="event-form">
-            <div className="form-group">
-              <label htmlFor="name">Event Name:</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Enter event name"
-                required
-              />
+            <div className="form-grid">
+              <div className="form-group">
+                <label htmlFor="name">Event Name:</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Enter event name"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="date">Event Date:</label>
+                <input
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group span-2">
+                <label htmlFor="description">Description:</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  placeholder="Enter event description"
+                  rows="3"
+                  required
+                />
+              </div>
+
+              <div className="form-group time-field">
+                <label htmlFor="start_time">Start Time:</label>
+                <input
+                  type="time"
+                  id="start_time"
+                  name="start_time"
+                  value={formData.start_time}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="form-group time-field">
+                <label htmlFor="end_time">End Time:</label>
+                <input
+                  type="time"
+                  id="end_time"
+                  name="end_time"
+                  value={formData.end_time}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="description">Description:</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Enter event description"
-                rows="3"
-                required
-              />
-            </div>
+            <div className="attendance-rules">
+              <div className="attendance-title">Attendance Rules</div>
+              <div className="rules-grid">
+                <div className="form-group">
+                  <label htmlFor="grace_period_minutes">Grace Period (minutes):</label>
+                  <input
+                    type="number"
+                    id="grace_period_minutes"
+                    name="grace_period_minutes"
+                    min="0"
+                    max="180"
+                    value={formData.grace_period_minutes}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="date">Date:</label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                required
-              />
+                <div className="form-group">
+                  <label htmlFor="late_limit_hours">Late Limit (hours after start):</label>
+                  <input
+                    type="number"
+                    id="late_limit_hours"
+                    name="late_limit_hours"
+                    min="0"
+                    step="1"
+                    value={formData.late_limit_hours}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="absent_after_hours">Mark Absent After (hours after start):</label>
+                  <input
+                    type="number"
+                    id="absent_after_hours"
+                    name="absent_after_hours"
+                    min="0"
+                    step="1"
+                    value={formData.absent_after_hours}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="form-group">
@@ -188,7 +293,7 @@ export default function EventManagement({ onBack }) {
               </div>
             )}
 
-            <div className="form-actions">
+            <div className="form-actions centered">
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -220,8 +325,12 @@ export default function EventManagement({ onBack }) {
                   <h3>{event.name}</h3>
                   <p className="event-description">{event.description}</p>
                   <div className="event-details">
-                    <span className="event-date">📅 {event.date}</span>
-                    <span className="event-location">📍 {event.location}</span>
+                    <span className="event-date">{event.date}</span>
+                    <span className="event-time">{event.start_time || "N/A"} - {event.end_time || "N/A"}</span>
+                    <span className="event-grace">Grace: {event.grace_period_minutes ?? 15} min</span>
+                    <span className="event-late">Late: {event.late_limit_hours ?? 1} hr</span>
+                    <span className="event-absent">Absent: {event.absent_after_hours ?? 2} hrs</span>
+                    <span className="event-location">{event.location}</span>
                   </div>
                   <div className="event-actions">
                     <button
@@ -246,3 +355,4 @@ export default function EventManagement({ onBack }) {
     </div>
   );
 }
+

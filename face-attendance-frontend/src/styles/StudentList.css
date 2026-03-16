@@ -364,6 +364,16 @@
   box-shadow: var(--shadow-button-hover);
 }
 
+.action-btn.enroll-all {
+  background: linear-gradient(135deg, var(--teal-500), var(--cyan-600));
+  color: white;
+  box-shadow: 0 4px 16px rgba(8, 145, 178, 0.3);
+}
+
+.action-btn.enroll-all:hover {
+  box-shadow: 0 8px 24px rgba(8, 145, 178, 0.4);
+}
+
 .action-btn.edit {
   background: linear-gradient(135deg, var(--warning-yellow), #d97706);
   color: white;
@@ -656,6 +666,22 @@
   background: var(--emerald-600);
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+}
+
+.student-list .enroll-all-result {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.student-list .enroll-all-result.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.student-list .enroll-all-result.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
 @keyframes fadeIn {

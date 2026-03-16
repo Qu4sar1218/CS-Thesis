@@ -153,6 +153,15 @@
   background: #d97706;
 }
 
+.action-btn.add-student {
+  background: #0ea5e9;
+  color: white;
+}
+
+.action-btn.add-student:hover {
+  background: #0284c7;
+}
+
 .action-btn.delete {
   background: #ef4444;
   color: white;
@@ -271,7 +280,11 @@
   display: block;
   margin-bottom: 5px;
   font-weight: 600;
-  color: #374151;
+  color: #ffffff;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
 }
 
 .manage-classes .form-group input,
@@ -291,6 +304,70 @@
   outline: none;
   border-color: var(--emerald-500);
   box-shadow: var(--shadow-focus);
+}
+
+/* Keep day picker compact inside modal forms */
+.manage-classes .form-group .day-select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 auto;
+}
+
+/* Prevent checkbox inputs from inheriting full-width text input styles */
+.manage-classes .course-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  margin: 0;
+  border: 2px solid #6b7280;
+  border-radius: 4px;
+  box-shadow: none;
+  accent-color: #10b981;
+  cursor: pointer;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.manage-classes .course-checkbox input[type="checkbox"]:checked {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+.manage-classes .course-checkbox input[type="checkbox"]:hover {
+  border-color: #10b981;
+}
+
+/* Visual indicator for selected courses - container changes color when checked */
+.manage-classes .course-checkbox:has(input[type="checkbox"]:checked) {
+  background-color: rgba(16, 185, 129, 0.2);
+  border: 2px solid #10b981;
+  border-radius: 8px;
+}
+
+.manage-classes .course-checkboxes {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: start;
+  justify-items: stretch;
+}
+
+.manage-classes .course-checkbox {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
+.manage-classes .course-checkbox input[type="checkbox"]:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.manage-classes .form-row-inline {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .manage-classes .modal-actions {
@@ -327,6 +404,19 @@
 
 .manage-classes .btn-secondary:hover {
   background: #4b5563;
+}
+
+.manage-classes .classes-list {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.manage-classes .class-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 
 @keyframes fadeIn {
@@ -368,14 +458,6 @@
 .back-btn:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-button-hover);
-}
-
-.btn-icon {
-  font-size: 16px;
-}
-
-.btn-text {
-  font-size: 12px;
 }
 
 /* Responsive Design */
@@ -445,6 +527,10 @@
   .back-btn {
     padding: 10px 20px;
     font-size: 12px;
+  }
+
+  .manage-classes .form-row-inline {
+    grid-template-columns: 1fr;
   }
 }
 

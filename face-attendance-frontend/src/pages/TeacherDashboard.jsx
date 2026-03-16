@@ -7,14 +7,18 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [showClassRoster, setShowClassRoster] = useState(false);
   const [teacherName, setTeacherName] = useState('');
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [showModeSelection, setShowModeSelection] = useState(false);
 
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
-  const handleTakeAttendance = async () => {
+  const handleTakeAttendance = async (mode = 'class') => {
     if (typeof onTakeAttendance === "function") {
-      await onTakeAttendance();
+      await onTakeAttendance(mode);
     }
+    setShowModeSelection(false);
   };
 
   const fetchClasses = useCallback(async () => {
@@ -54,6 +58,36 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
   useEffect(() => {
     fetchClasses();
   }, [fetchClasses]);
+
+  const fetchEvents = useCallback(async () => {
+    console.log("🔍 fetchEvents called");
+    setLoadingEvents(true);
+    try {
+      const url = `${BACKEND_URL}/events`;
+      console.log(`🌐 Making request to: ${url}`);
+      const response = await fetch(url);
+      console.log(`📥 Response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Failed to fetch events: ${response.status} - ${errorText}`);
+        throw new Error(`Failed to fetch events: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("📦 Received events data:", data);
+      setEvents(data.events || []);
+    } catch (error) {
+      console.error("💥 Error fetching events:", error);
+      setEvents([]);
+    } finally {
+      setLoadingEvents(false);
+    }
+  }, [BACKEND_URL]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   useEffect(() => {
     const fetchTeacherName = async () => {
@@ -111,6 +145,42 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
   return (
     <div className="teacher-dashboard-wrapper">
 
+      {/* Mode Selection Modal */}
+      {showModeSelection && (
+        <div className="mode-selection-overlay">
+          <div className="mode-selection-modal">
+            <h3>Select Attendance Mode</h3>
+            <p>Choose how you want to take attendance:</p>
+            <div className="mode-buttons">
+              <button
+                className="mode-btn class-mode"
+                onClick={() => handleTakeAttendance('class')}
+                disabled={starting}
+              >
+                <span className="mode-icon">📚</span>
+                <span className="mode-title">Class Mode</span>
+                <span className="mode-desc">Take attendance for a scheduled class</span>
+              </button>
+              <button
+                className="mode-btn events-mode"
+                onClick={() => handleTakeAttendance('events')}
+                disabled={starting}
+              >
+                <span className="mode-icon">🎉</span>
+                <span className="mode-title">Events Mode</span>
+                <span className="mode-desc">Take attendance for an event</span>
+              </button>
+            </div>
+            <button
+              className="cancel-btn"
+              onClick={() => setShowModeSelection(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile hamburger button */}
       {!isOpen && (
         <button 
@@ -158,7 +228,7 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
           <div className="nav-section">
             <button
               className="nav-item"
-              onClick={handleTakeAttendance}
+              onClick={() => setShowModeSelection(true)}
               disabled={typeof onTakeAttendance !== 'function' || starting}
             >
               <span className="nav-icon">📸</span>
@@ -211,14 +281,14 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
       {/* Content */}
       <main className="teacher-main-content">
         <div className="content-header">
-          <h1>Welcome Teacher {teacherName ? teacherName : 'Teacher'}</h1>
+          <h1>Welcome  {teacherName ? teacherName : 'Teacher'}</h1>
           <p>Take attendance, review students, and manage classes.</p>
         </div>
 
         {/* Teacher-specific content */}
         <div className="teacher-overview">
           <div className="overview-card">
-            <h3>My Subjects</h3>
+            <h3>Subject Attendance Overview</h3>
             <div className="class-list">
               {loadingClasses ? (
                 <div className="loading-classes">Loading subjects...</div>
@@ -243,11 +313,22 @@ export default function TeacherDashboard({ onLogout, onTakeAttendance, starting,
           </div>
 
           <div className="overview-card">
-            <h3>Quick Actions</h3>
-            <div className="action-buttons">
-              <button className="action-btn primary">Take Attendance</button>
-              <button className="action-btn secondary">View Reports</button>
-              <button className="action-btn secondary">Manage Students</button>
+            <h3>Events Overview</h3>
+            <div className="events-list">
+              {loadingEvents ? (
+                <div className="loading-events">Loading events...</div>
+              ) : events.length === 0 ? (
+                <div className="no-events">No upcoming events.</div>
+              ) : (
+                events.slice(0, 5).map((event) => (
+                  <div key={event._id} className="event-item">
+                    <span className="event-name">{event.name}</span>
+                    <span className="event-date">📅 {event.date}</span>
+                    <span className="event-time">🕒 {event.start_time} - {event.end_time}</span>
+                    <span className="event-location">📍 {event.location}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

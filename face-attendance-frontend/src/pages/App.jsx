@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+    import React, { useState, useEffect } from 'react';
 
 import Login from "./Login.jsx";
 import AdminDashboard from "./AdminDashboard.jsx";
@@ -52,8 +52,8 @@ function App() {
   };
 
   // Trigger face recognition - FIXED VERSION
-  const activateFaceRecognition = async ({ mode, subject } = {}) => {
-    console.log("🚀 Starting face recognition...");
+  const activateFaceRecognition = async (mode = 'class', subject = null) => {
+    console.log("🚀 Starting face recognition with mode:", mode);
     setIsStarting(true);
 
     try {
@@ -71,12 +71,12 @@ function App() {
       const data = await res.json();
       console.log("Start response:", data);
 
-      // Wait for camera to be ready
+      // Wait for camera to be ready - reduced timeout for faster navigation
       console.log("⏳ Waiting for camera to initialize...");
       const startTime = Date.now();
       let cameraReady = false;
 
-      while (Date.now() - startTime < 8000) {
+      while (Date.now() - startTime < 5000) {
         try {
           const statusRes = await fetch(`${BACKEND_URL}/camera_status`);
           if (statusRes.ok) {
@@ -96,14 +96,23 @@ function App() {
       }
 
       if (!cameraReady) {
-        console.warn("⚠️ Camera took longer than expected to initialize");
+        // Slow camera startup is common on Windows/OpenCV; StatusPanel continues retries/fallback.
+        console.info("Camera is still initializing; continuing to status panel.");
       }
 
-      // Show the status panel
-      if (mode) {
-        setPanelMode(mode);
+      // Show the status panel directly for hallway mode, otherwise show attendance mode selection
+      if (mode === 'hallway') {
+        setPanelMode('hallway');
         setSelectedSubject(subject || null);
         setShowStatusPanel(true);
+      } else if (mode === 'class') {
+        setPanelMode('class');
+        setSelectedSubject(subject || null);
+        setShowAttendanceMode(true);
+      } else if (mode === 'events') {
+        setPanelMode('events');
+        setSelectedSubject(subject || null);
+        setShowAttendanceMode(true);
       } else {
         setShowAttendanceMode(true);
       }
@@ -164,6 +173,8 @@ function App() {
   const AttendanceMode = () => {
     const [teacherSubjects, setTeacherSubjects] = useState([]);
     const [loadingSubjects, setLoadingSubjects] = useState(false);
+    const [todayEvents, setTodayEvents] = useState([]);
+    const [loadingEvents, setLoadingEvents] = useState(false);
 
     const subjects = role === "teacher" ? teacherSubjects : [
       { id: "math101", name: "Mathematics 101", accessible: true },
@@ -173,6 +184,7 @@ function App() {
       { id: "hist210", name: "History 210", accessible: true },
     ];
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
       if (role === "teacher" && panelMode === "class" && userInfo?.user_id) {
         const fetchTeacherSubjects = async () => {
@@ -182,7 +194,9 @@ function App() {
             if (response.ok) {
               const data = await response.json();
               const subjectsFromClasses = data.classes.map(cls => ({
-                id: cls.class_code,
+                id: cls._id || cls.class_code,
+                classId: cls._id,
+                classCode: cls.class_code,
                 name: cls.class_name,
                 accessible: cls.accessible
               }));
@@ -196,9 +210,39 @@ function App() {
         };
         fetchTeacherSubjects();
       }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [BACKEND_URL, panelMode, role, userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+      if (panelMode !== "events") return;
+
+      const fetchTodayEvents = async () => {
+        setLoadingEvents(true);
+        try {
+          const response = await fetch(`${BACKEND_URL}/events/today`);
+          if (response.ok) {
+            const data = await response.json();
+            setTodayEvents(data.events || []);
+          } else {
+            setTodayEvents([]);
+          }
+        } catch (error) {
+          console.error("Error fetching today's events:", error);
+          setTodayEvents([]);
+        } finally {
+          setLoadingEvents(false);
+        }
+      };
+
+      fetchTodayEvents();
+    }, [BACKEND_URL, panelMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (panelMode === "class") {
+      const openSubjectPanel = (subjectData) => {
+        setSelectedSubject(subjectData);
+        setShowAttendanceMode(false);
+        setShowStatusPanel(true);
+      };
+
       return (
         <div className="attendance-container">
           <div className="attendance-card">
@@ -217,13 +261,9 @@ function App() {
                     <button
                       key={s.id}
                       onClick={() => {
-                        if (s.accessible) {
-                          setSelectedSubject(s);
-                          setShowAttendanceMode(false);
-                          setShowStatusPanel(true);
-                        }
+                        // Allow selecting any subject regardless of accessible flag
+                        openSubjectPanel(s);
                       }}
-                      disabled={!s.accessible}
                       className={`btn subject-card ${
                         s.accessible ? "subject-today" : "subject-disabled"
                       }`}
@@ -239,6 +279,67 @@ function App() {
               <div className="toolbar">
                 <button
                   className="btn btn-secondary"
+                  onClick={() => {
+                    setPanelMode(null);
+                  }}
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (panelMode === "events") {
+      return (
+        <div className="attendance-container">
+          <div className="attendance-card">
+            <div className="attendance-header">
+              <h2 className="attendance-title">Select Event</h2>
+            </div>
+            <div className="attendance-body">
+              <p className="section-subtle">
+                Choose today&apos;s event to start attendance.
+              </p>
+              {loadingEvents ? (
+                <div className="loading-subjects">Loading today&apos;s events...</div>
+              ) : todayEvents.length > 0 ? (
+                <div className="subjects-grid mt-16">
+                  {todayEvents.map((eventItem) => (
+                    <button
+                      key={eventItem._id}
+                      onClick={() => {
+                        setSelectedSubject({
+                          id: eventItem._id,
+                          name: eventItem.name,
+                          date: eventItem.date,
+                          start_time: eventItem.start_time,
+                          end_time: eventItem.end_time,
+                        });
+                        setShowAttendanceMode(false);
+                        setShowStatusPanel(true);
+                      }}
+                      className="btn subject-card subject-today"
+                    >
+                      <div className="subject-name">
+                        {eventItem.name} • Starting today
+                      </div>
+                      <div className="subject-meta">
+                        {eventItem.start_time && eventItem.end_time
+                          ? `${eventItem.start_time} - ${eventItem.end_time}`
+                          : "Time not set"}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="section-subtle mt-16">No event is scheduled for today.</p>
+              )}
+              <div className="toolbar">
+                <button
+                  className="btn btn-secondary"
                   onClick={() => setPanelMode(null)}
                 >
                   Back
@@ -250,6 +351,7 @@ function App() {
       );
     }
 
+    // Default: Show mode selection (only for admin)
     return (
       <div className="attendance-container">
         <div className="attendance-card">
@@ -272,8 +374,6 @@ function App() {
                 className="btn btn-secondary"
                 onClick={() => {
                   setPanelMode("events");
-                  setShowAttendanceMode(false);
-                  setShowStatusPanel(true);
                 }}
               >
                 Events Mode
@@ -348,7 +448,7 @@ function App() {
     ) : (
       <AdminDashboard
         onLogout={handleLogout}
-        onTakeAttendance={() => activateFaceRecognition()}
+        onTakeAttendance={(mode) => activateFaceRecognition(mode)}
         starting={isStarting}
         onNavigate={(page) => setCurrentPage(page)}
       />
@@ -366,7 +466,7 @@ function App() {
     ) : (
       <TeacherDashboard
         onLogout={handleLogout}
-        onTakeAttendance={() => activateFaceRecognition()}
+        onTakeAttendance={(mode) => activateFaceRecognition(mode)}
         starting={isStarting}
         userInfo={userInfo}
         onNavigate={(page) => setCurrentPage(page)}

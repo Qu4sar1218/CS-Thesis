@@ -15,6 +15,32 @@
   letter-spacing: 0.5px;
 }
 
+/* Student ID Display */
+.student-id-display {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.student-id-label {
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.student-id-value {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
 .register-form {
   display: flex;
   flex-direction: column;
@@ -119,6 +145,202 @@
   transform: none;
 }
 
+/* Position Selector Styles */
+.position-selector {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f0fdf4;
+  border-radius: 10px;
+  border: 2px solid #10b981;
+}
+
+.position-label {
+  font-weight: 600;
+  color: #047857;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.position-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.position-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 2px solid #a7f3d0;
+  background: white;
+  color: #047857;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.position-btn:hover:not(:disabled) {
+  background: #f0fdf4;
+  border-color: #10b981;
+}
+
+.position-btn.active {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+}
+
+.position-btn.captured {
+  background: #059669;
+  color: white;
+  border-color: #059669;
+}
+
+.position-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.position-check {
+  color: #a7f3d0;
+  font-weight: bold;
+}
+
+.position-guidance {
+  font-size: 13px;
+  color: #059669;
+  font-style: italic;
+  margin: 10px 0 0 0;
+}
+
+/* Position Progress Styles */
+.position-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  min-width: 70px;
+}
+
+.progress-item.completed {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+.progress-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.progress-item.completed .progress-label {
+  color: #047857;
+}
+
+.progress-count {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.progress-item.completed .progress-count {
+  color: #059669;
+  font-weight: 600;
+}
+
+/* Mirrored video for selfie-like experience */
+.webcam-video.mirrored {
+  transform: scaleX(-1);
+}
+
+/* Face Training Section */
+.face-training-section {
+  max-width: 550px;
+  margin: 30px auto 0;
+}
+
+.training-status-container {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f0fdf4;
+  border-radius: 8px;
+}
+
+.training-status-container .training-status {
+  margin: 0;
+  color: #059669;
+  font-weight: 500;
+}
+
+.training-prompt {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  border: 3px solid #10b981;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.15);
+}
+
+.training-icon {
+  font-size: 60px;
+  margin-bottom: 15px;
+}
+
+.training-prompt h2 {
+  color: #065f46;
+  margin-bottom: 10px;
+  font-size: 24px;
+}
+
+.training-prompt p {
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.training-instructions {
+  font-size: 14px;
+  color: #059669;
+  margin-bottom: 20px;
+}
+
+.training-prompt .train-face-btn {
+  width: 100%;
+  padding: 16px 28px;
+  font-size: 16px;
+}
+
+.training-status.success {
+  color: #059669;
+  font-weight: 600;
+  margin-top: 15px;
+}
+
+.training-complete-badge {
+  background: #d1fae5;
+  color: #059669;
+  padding: 12px 20px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 20px;
+  border: 2px solid #10b981;
+}
+
 .secondary {
   background: white;
   color: #047857;
@@ -187,4 +409,130 @@
     padding: 12px 20px;
     font-size: 14px;
   }
+}
+
+/* Popup Modal Styles */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.popup-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.popup-modal.error {
+  border-top: 5px solid #ef4444;
+}
+
+.popup-modal.success {
+  border-top: 5px solid #10b981;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.popup-modal.error .popup-header h3 {
+  color: #dc2626;
+}
+
+.popup-modal.success .popup-header h3 {
+  color: #059669;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.popup-close:hover {
+  color: #6b7280;
+}
+
+.popup-content {
+  padding: 24px 20px;
+}
+
+.popup-content h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.popup-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.popup-footer {
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.popup-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.popup-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }

@@ -12,6 +12,11 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [courseFilterStudents, setCourseFilterStudents] = useState("");
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
+  const [allStudents, setAllStudents] = useState([]);
+  const [loadingAllStudents, setLoadingAllStudents] = useState(false);
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [addStudentLoading, setAddStudentLoading] = useState(false);
+  const [addStudentFeedback, setAddStudentFeedback] = useState("");
 
   const dayOptions = [
     { value: "", label: "All Days" },
@@ -104,9 +109,40 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
     }
   }, [BACKEND_URL]);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const fetchAllStudents = useCallback(async () => {
+    try {
+      setLoadingAllStudents(true);
+      const response = await fetch(`${BACKEND_URL}/students`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch students: ${response.status}`);
+      }
+      const data = await response.json();
+      const transformedStudents = (data.students || []).map((student) => ({
+        id: student.student_id,
+        name: `${student.first_name || ""} ${student.last_name || ""}`.trim(),
+        course: student.course || "",
+        year: student.year || ""
+      }));
+      setAllStudents(transformedStudents);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setAllStudents([]);
+    } finally {
+      setLoadingAllStudents(false);
+    }
+  }, [BACKEND_URL]);
+
   const handleClassClick = (cls) => {
     setSelectedClass(cls);
     fetchEnrolledStudents(cls._id);
+    fetchAllStudents();
+    setStudentSearchTerm("");
+    setAddStudentFeedback("");
     setIsStudentModalOpen(true);
   };
 
@@ -118,6 +154,7 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
 
   const closeStudentModal = () => {
     setIsStudentModalOpen(false);
+    setAddStudentFeedback("");
     handleBackToClasses();
   };
 
@@ -125,6 +162,34 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
     fetchClasses();
     fetchTeacherData();
   }, [fetchClasses, fetchTeacherData]);
+
+  const handleAddStudentToClass = async (studentId) => {
+    if (!selectedClass || !studentId) return;
+
+    try {
+      setAddStudentLoading(true);
+      setAddStudentFeedback("");
+      const response = await fetch(`${BACKEND_URL}/classes/${selectedClass._id}/enroll-student`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ student_id: studentId })
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.detail || result.error || "Failed to add student");
+      }
+      setAddStudentFeedback(result.message || "Student added successfully");
+      await fetchEnrolledStudents(selectedClass._id);
+      await fetchClasses();
+    } catch (error) {
+      setAddStudentFeedback(`Error: ${error.message}`);
+    } finally {
+      setAddStudentLoading(false);
+    }
+  };
 
   const parseSchedule = (schedule) => {
     // Parse schedule string like "MWF 9:00-10:00" into days, startTime, endTime
@@ -154,6 +219,17 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
     const matchesDay = !dayFilter || fullDays.includes(dayFilter);
     const matchesCourse = !courseFilter || cls.class_name.toLowerCase().includes(courseFilter.toLowerCase());
     return matchesDay && matchesCourse;
+  });
+
+  const enrolledStudentIdSet = new Set(enrolledStudents.map((student) => student.student_id));
+  const filteredStudentsForAdd = allStudents.filter((student) => {
+    const query = studentSearchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      student.name.toLowerCase().includes(query) ||
+      student.id.toLowerCase().includes(query) ||
+      student.course.toLowerCase().includes(query)
+    );
   });
 
   return (
@@ -297,6 +373,73 @@ export default function TeacherClassRoster({ onBack, userInfo }) {
             <div className="content-header" style={{ marginBottom: '20px' }}>
               <h2>Students in {selectedClass.class_name}</h2>
               <p>View enrolled students filtered by courses/strands.</p>
+            </div>
+
+            <div style={{
+              marginBottom: '20px',
+              padding: '12px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              background: 'rgba(255,255,255,0.03)'
+            }}>
+              <h3 style={{ color: '#10b981', marginTop: 0, marginBottom: '10px', fontSize: '16px' }}>Add Student</h3>
+              <input
+                type="text"
+                value={studentSearchTerm}
+                onChange={(e) => setStudentSearchTerm(e.target.value)}
+                placeholder="Search by name, ID, or course..."
+                style={{
+                  width: '100%',
+                  marginBottom: '10px',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'white'
+                }}
+              />
+
+              {addStudentFeedback && (
+                <p style={{ margin: '0 0 10px 0', color: addStudentFeedback.startsWith('Error:') ? '#f87171' : '#34d399' }}>
+                  {addStudentFeedback}
+                </p>
+              )}
+
+              <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'grid', gap: '8px' }}>
+                {loadingAllStudents ? (
+                  <div className="loading-classes">Loading students...</div>
+                ) : filteredStudentsForAdd.length === 0 ? (
+                  <div className="no-classes">No students found.</div>
+                ) : (
+                  filteredStudentsForAdd.map((student) => {
+                    const alreadyEnrolled = enrolledStudentIdSet.has(student.id);
+                    return (
+                      <div key={student.id} style={{
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '8px',
+                        padding: '8px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '10px'
+                      }}>
+                        <div>
+                          <div style={{ color: 'white', fontSize: '13px', fontWeight: '600' }}>{student.name || 'Unnamed Student'} ({student.id})</div>
+                          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '12px' }}>{student.course} | Year {student.year}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="action-btn primary"
+                          disabled={alreadyEnrolled || addStudentLoading}
+                          onClick={() => handleAddStudentToClass(student.id)}
+                        >
+                          {alreadyEnrolled ? 'Already Enrolled' : 'Add Student'}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* Course/Strand Filter for Students */}

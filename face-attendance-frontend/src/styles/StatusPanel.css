@@ -88,21 +88,16 @@
 
 /* Status section in right-top */
 .status-section {
-  grid-area: status;
+  grid-area: status / status / attendance / attendance;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
   padding: 0;
 }
 
-/* Attendance section in right-bottom */
-.attendance-section {
-  grid-area: attendance;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 0;
-}
+
+
 
 /* Section titles */
 .section-title {
@@ -121,13 +116,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 0;
   position: relative;
   overflow: hidden;
-  max-width: 50vw;
-  max-height: 50vh;
+  width: 100%;
+  min-height: clamp(160px, 25vh, 320px);
+  max-height: 50%;
   border-radius: 24px;
-  margin: 24px;
+  margin: 0;
 }
 
 .video-container::before {
@@ -339,8 +335,15 @@
 
 /* Student Details Card */
 .student-details {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border: 1px solid var(--glass-border);
+    margin-top: 24px;
 }
+
 
 .student-details h2 {
     color: #1e40af;
@@ -502,6 +505,43 @@
 /* Control Buttons */
 .control-footer {
     margin-top: 20px;
+}
+
+.camera-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.camera-controls label {
+    font-weight: 700;
+    color: var(--neon-green);
+}
+
+.camera-select {
+    min-width: 160px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(7, 14, 27, 0.8);
+    color: #ffffff;
+}
+
+.camera-apply-btn {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: linear-gradient(135deg, #0ea5a3 0%, #0f766e 100%);
+    color: #ffffff;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.camera-apply-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .control-btn {
@@ -680,6 +720,213 @@
     margin: 0;
 }
 
+/* ===== Attendance Mode Card ===== */
+.attendance-mode-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    padding: 24px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-glass);
+}
+
+.attendance-mode-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.mode-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: var(--shadow-glass);
+}
+
+.mode-badge.mode-in {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    border: 2px solid #34d399;
+}
+
+.mode-badge.mode-out {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+    border: 2px solid #fbbf24;
+}
+
+.mode-switch-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 2px solid var(--glass-border);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 200ms ease;
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+.mode-switch-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.mode-switch-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mode-switch-btn.switch-to-out {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+}
+
+.mode-switch-btn.switch-to-out:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.mode-switch-btn.switch-to-in {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.mode-switch-btn.switch-to-in:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+/* ===== Message Alert ===== */
+.message-alert {
+    padding: 16px 24px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    font-weight: 600;
+    text-align: center;
+    animation: fadeIn 300ms ease-out;
+}
+
+.message-alert.success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    border: 2px solid #34d399;
+}
+
+.message-alert.error {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    border: 2px solid #f87171;
+}
+
+/* ===== Attendance Type Badge ===== */
+.attendance-type-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.attendance-type-badge.time-in {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.attendance-type-badge.time-out {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* ===== Attendance Status GIF (Event Mode) ===== */
+.attendance-status-gif {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.status-gif {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 12px;
+    animation: gifPopIn 300ms ease-out;
+}
+
+.success-gif {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+}
+
+.error-gif {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes gifPopIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    70% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ===== Attendance Status Badge ===== */
+.attendance-status-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+}
+
+.attendance-status-badge.success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.attendance-status-badge.failed {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+/* ===== Attendance Message ===== */
+.attendance-message {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    font-size: 13px;
+    color: #374151;
+}
+
 /* ===== Responsive Design ===== */
 /* Tablet and smaller desktop - stack sections vertically */
 @media (max-width: 1200px) {
@@ -707,8 +954,7 @@
     }
 
     .video-container {
-        max-width: 100%;
-        max-height: 60vh;
+        min-height: 340px;
         margin: 0;
     }
 
@@ -724,8 +970,7 @@
     }
 
     .video-container {
-        padding: 20px;
-        max-height: 50vh;
+        min-height: 280px;
     }
 
     .status-badge {
@@ -770,8 +1015,7 @@
     }
 
     .video-container {
-        padding: 16px;
-        max-height: 40vh;
+        min-height: 220px;
     }
 
     .status-badge {
@@ -877,6 +1121,160 @@
 
 .attendance-item {
     animation: fadeIn 300ms ease-out;
+}
+
+/* ===== Confirmation Overlay Styles ===== */
+.confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 200ms ease-out;
+}
+
+.confirmation-content {
+    background: linear-gradient(135deg, #1a2332 0%, #2a3441 100%);
+    border-radius: 24px;
+    padding: 48px 64px;
+    text-align: center;
+    border: 2px solid var(--neon-mint);
+    box-shadow: 0 0 60px rgba(0, 255, 136, 0.4), 0 0 100px rgba(0, 255, 136, 0.2);
+    animation: scaleIn 300ms ease-out;
+}
+
+@keyframes scaleIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    70% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.confirmation-icon {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    animation: iconPop 400ms ease-out;
+}
+
+@keyframes iconPop {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.confirmation-icon.success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.6);
+}
+
+.confirmation-icon.failed {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.6);
+}
+
+.confirmation-icon svg {
+    width: 80px;
+    height: 80px;
+}
+
+.confirmation-icon.success svg {
+    color: white;
+}
+
+.confirmation-icon.failed svg {
+    color: white;
+}
+
+.confirmation-icon .circle {
+    animation: drawCircle 500ms ease-out forwards;
+    stroke-dasharray: 283;
+    stroke-dashoffset: 283;
+}
+
+.confirmation-icon.success .circle {
+    stroke: white;
+}
+
+.confirmation-icon.failed .circle {
+    stroke: white;
+}
+
+.confirmation-icon .check,
+.confirmation-icon .cross {
+    animation: drawCheck 400ms ease-out 300ms forwards;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+}
+
+@keyframes drawCircle {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes drawCheck {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.confirmation-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 16px 0;
+    color: var(--neon-mint);
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+}
+
+.confirmation-icon.failed + .confirmation-title {
+    color: #ef4444;
+    text-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+.confirmation-student-name {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 8px 0;
+}
+
+.confirmation-student-id {
+    font-size: 18px;
+    color: var(--neon-green);
+    margin: 0 0 16px 0;
+    font-weight: 600;
+}
+
+.confirmation-timestamp {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+    font-weight: 500;
 }
 
 /* Focus states for accessibility */

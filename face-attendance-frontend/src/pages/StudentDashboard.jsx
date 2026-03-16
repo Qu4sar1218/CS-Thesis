@@ -4,6 +4,10 @@ import '../styles/StudentDashboard.css';
 export default function StudentDashboard({ onLogout, onFaceRecognition, onNavigate, userInfo }) {
   const [isOpen, setIsOpen] = useState(false);
   const [studentName, setStudentName] = useState('');
+  const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000";
 
   const formatName = (first, middle, last) => {
     if (!first || !last) return `${first || ''} ${last || ''}`.trim();
@@ -16,7 +20,6 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
     const lastParts = capitalizedLast.split(' ');
 
     if (lastParts.length > 1) {
-      // Assume middle initial is already included in the last name
       return `${capitalizedFirst} ${capitalizedLast}`.trim();
     } else {
       const middleInitial = middle ? ` ${middle.charAt(0).toUpperCase()}.` : '';
@@ -28,7 +31,7 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
     const fetchStudentName = async () => {
       if (userInfo?.user_id) {
         try {
-          const response = await fetch(`http://localhost:8000/students/${userInfo.user_id}`);
+          const response = await fetch(`${BACKEND_URL}/students/${userInfo.user_id}`);
           if (response.ok) {
             const data = await response.json();
             const fullName = formatName(data.first_name, data.middle_name, data.last_name);
@@ -40,209 +43,200 @@ export default function StudentDashboard({ onLogout, onFaceRecognition, onNaviga
       }
     };
     fetchStudentName();
-  }, [userInfo?.user_id]);
+  }, [userInfo?.user_id, BACKEND_URL]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let poller = null;
+
+    const fetchAttendance = async () => {
+      if (!userInfo?.user_id) return;
+      try {
+        const response = await fetch(`${BACKEND_URL}/analytics/student/${userInfo.user_id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (!cancelled) {
+            setAttendanceRecords(data.attendance || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching student attendance:', error);
+      } finally {
+        if (!cancelled) {
+          setLoadingAttendance(false);
+        }
+      }
+    };
+
+    fetchAttendance();
+    poller = setInterval(fetchAttendance, 3000);
+
+    return () => {
+      cancelled = true;
+      if (poller) clearInterval(poller);
+    };
+  }, [userInfo?.user_id, BACKEND_URL]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todaysAttendance = attendanceRecords.filter((item) => item.date === today);
+  const presentCount = attendanceRecords.filter((item) => ["present", "late", "PRESENT", "LATE"].includes(item.status)).length;
+  const pendingCount = attendanceRecords.filter((item) => item.status === "PENDING_REVALIDATION").length;
+  const attendanceRate = attendanceRecords.length > 0 ? Math.round((presentCount / attendanceRecords.length) * 100) : 0;
+  const latestAttendance = attendanceRecords.length > 0 ? attendanceRecords[0] : null;
+
+  const getStatusClass = (statusValue) => {
+    const value = String(statusValue || "").toLowerCase();
+    if (value.includes("pending")) return "pending";
+    if (value === "present" || value === "late") return "attended";
+    return "upcoming";
+  };
 
   return (
     <div className="student-dashboard-wrapper">
-
-      {/* Mobile hamburger button */}
       {!isOpen && (
         <button
           className="mobile-menu-btn"
           onClick={() => setIsOpen(true)}
           aria-label="Open menu"
         >
-          ☰
+          Menu
         </button>
       )}
 
-      {/* Sidebar */}
       <aside className={`student-sidebar ${isOpen ? 'open' : 'closed'}`}>
-
-        {/* Sidebar Header */}
         <div className="sidebar-header">
           <div className="logo-section">
             <div className="logo-icon">S</div>
             {isOpen && <h2 className="logo-text">Student Panel</h2>}
           </div>
 
-          {/* Desktop open/close toggle */}
           <button
             className="desktop-toggle-btn"
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
           >
-            {isOpen ? "←" : "→"}
+            {isOpen ? "<" : ">"}
           </button>
 
-          {/* Mobile close X */}
           {isOpen && (
             <button
               className="mobile-close-btn inline-close"
               onClick={() => setIsOpen(false)}
               aria-label="Close menu"
             >
-              ✕
+              X
             </button>
           )}
         </div>
 
-        {/* Navigation */}
         <nav className="sidebar-nav" aria-label="student actions">
           <div className="nav-section">
-
-
             <button className="nav-item" onClick={() => onNavigate && onNavigate("schedule")}>
-              <span className="nav-icon">📅</span>
+              <span className="nav-icon">S</span>
               {isOpen && <span className="nav-text">Schedule</span>}
             </button>
 
             <button className="nav-item">
-              <span className="nav-icon">📚</span>
+              <span className="nav-icon">A</span>
               {isOpen && <span className="nav-text">Assignments</span>}
             </button>
 
             <button className="nav-item">
-              <span className="nav-icon">📝</span>
+              <span className="nav-icon">G</span>
               {isOpen && <span className="nav-text">Grades</span>}
             </button>
 
             <button className="nav-item" onClick={() => onNavigate && onNavigate("profile")}>
-              <span className="nav-icon">👤</span>
+              <span className="nav-icon">P</span>
               {isOpen && <span className="nav-text">Profile</span>}
             </button>
 
             <button className="nav-item" onClick={() => onNavigate && onNavigate("settings")}>
-              <span className="nav-icon">⚙️</span>
+              <span className="nav-icon">T</span>
               {isOpen && <span className="nav-text">Settings</span>}
             </button>
 
             <button className="nav-item">
-              <span className="nav-icon">💬</span>
+              <span className="nav-icon">M</span>
               {isOpen && <span className="nav-text">Messages</span>}
             </button>
 
             <button className="nav-item" onClick={() => onNavigate && onNavigate("receiptSubmission")}>
-              <span className="nav-icon">🧾</span>
+              <span className="nav-icon">R</span>
               {isOpen && <span className="nav-text">Submit Receipt</span>}
             </button>
 
             <button className="nav-item">
-              <span className="nav-icon">❓</span>
+              <span className="nav-icon">?</span>
               {isOpen && <span className="nav-text">Help & Support</span>}
             </button>
           </div>
         </nav>
 
         <button className="sidebar-logout" onClick={onLogout}>
-          <span className="nav-icon">🚪</span>
+          <span className="nav-icon">L</span>
           {isOpen && <span className="nav-text">Logout</span>}
         </button>
       </aside>
 
-      {/* Content */}
       <main className="student-main-content">
         <div className="content-header">
           <h1>Welcome, {studentName ? ` ${studentName}` : ' Student'}</h1>
           <p>View your attendance and schedule here.</p>
         </div>
 
-        {/* Student-specific content */}
         <div className="student-stats">
           <div className="stat-card">
             <h3>Attendance Rate</h3>
-            <div className="stat-value">95%</div>
-            <div className="stat-description">This semester</div>
+            <div className="stat-value">{attendanceRate}%</div>
+            <div className="stat-description">Live from database</div>
           </div>
           <div className="stat-card">
-            <h3>Classes Today</h3>
-            <div className="stat-value">4</div>
-            <div className="stat-description">Scheduled classes</div>
+            <h3>Today&apos;s Records</h3>
+            <div className="stat-value">{todaysAttendance.length}</div>
+            <div className="stat-description">Updated every 3s</div>
           </div>
           <div className="stat-card">
-            <h3>Next Class</h3>
-            <div className="stat-value">Math</div>
-            <div className="stat-description">In 30 minutes</div>
+            <h3>Pending Revalidation</h3>
+            <div className="stat-value">{pendingCount}</div>
+            <div className="stat-description">Monitoring mode</div>
           </div>
           <div className="stat-card">
-            <h3>Pending Assignments</h3>
-            <div className="stat-value">3</div>
-            <div className="stat-description">Due this week</div>
+            <h3>Latest Status</h3>
+            <div className="stat-value">{latestAttendance?.status || "N/A"}</div>
+            <div className="stat-description">{latestAttendance?.subject || latestAttendance?.class_id || "No records yet"}</div>
           </div>
         </div>
 
-        {/* Today's Schedule */}
         <div className="student-schedule">
-          <h2>Today's Schedule</h2>
+          <h2>Attendance Status (Live)</h2>
           <div className="schedule-list">
-            <div className="schedule-item">
-              <div className="schedule-time">9:00 AM</div>
-              <div className="schedule-details">
-                <div className="schedule-subject">Mathematics</div>
-                <div className="schedule-room">Room 201</div>
-                <div className="schedule-status attended">✓ Attended</div>
+            {loadingAttendance ? (
+              <div className="schedule-item">
+                <div className="schedule-details">
+                  <div className="schedule-subject">Loading attendance...</div>
+                </div>
               </div>
-            </div>
-            <div className="schedule-item">
-              <div className="schedule-time">10:30 AM</div>
-              <div className="schedule-details">
-                <div className="schedule-subject">Physics</div>
-                <div className="schedule-room">Lab 3</div>
-                <div className="schedule-status upcoming">Next</div>
+            ) : attendanceRecords.length === 0 ? (
+              <div className="schedule-item">
+                <div className="schedule-details">
+                  <div className="schedule-subject">No attendance records found.</div>
+                </div>
               </div>
-            </div>
-            <div className="schedule-item">
-              <div className="schedule-time">2:00 PM</div>
-              <div className="schedule-details">
-                <div className="schedule-subject">English Literature</div>
-                <div className="schedule-room">Room 105</div>
-                <div className="schedule-status pending">Pending</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="recent-activity">
-          <h2>Recent Activity</h2>
-          <div className="activity-list">
-            <div className="activity-item">
-              <span className="activity-icon">✅</span>
-              <div className="activity-details">
-                <div className="activity-title">Attendance Marked</div>
-                <div className="activity-time">Math Class - 2 hours ago</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <span className="activity-icon">📚</span>
-              <div className="activity-details">
-                <div className="activity-title">Assignment Submitted</div>
-                <div className="activity-time">Physics Lab Report - 1 day ago</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <span className="activity-icon">📝</span>
-              <div className="activity-details">
-                <div className="activity-title">Grade Posted</div>
-                <div className="activity-time">Chemistry Quiz - A- (92%)</div>
-              </div>
-            </div>
-            <div className="activity-item">
-              <span className="activity-icon">💬</span>
-              <div className="activity-details">
-                <div className="activity-title">New Message</div>
-                <div className="activity-time">From Teacher Smith - 3 hours ago</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="student-actions">
-          <h2>Quick Actions</h2>
-          <div className="action-buttons">
-            <button className="action-btn primary">View Full Schedule</button>
-            <button className="action-btn secondary">Check Grades</button>
-            <button className="action-btn secondary">Contact Teacher</button>
+            ) : (
+              attendanceRecords.slice(0, 6).map((record, idx) => (
+                <div className="schedule-item" key={`${record._id || record.class_id}-${idx}`}>
+                  <div className="schedule-time">{record.check_in_time || "--:--:--"}</div>
+                  <div className="schedule-details">
+                    <div className="schedule-subject">{record.subject || record.class_id || "Subject"}</div>
+                    <div className="schedule-room">{record.date}</div>
+                    <div className={`schedule-status ${getStatusClass(record.status)}`}>
+                      {record.status}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>

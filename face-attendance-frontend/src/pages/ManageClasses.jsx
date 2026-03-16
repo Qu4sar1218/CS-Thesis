@@ -28,11 +28,39 @@ export default function ManageClasses({ onBack }) {
 
   const [isAddFormOpen, setIsAddFormOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [selectedClass, setSelectedClass] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [classForStudentAdd, setClassForStudentAdd] = useState(null);
+  const [allStudents, setAllStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [studentSearchTerm, setStudentSearchTerm] = useState("");
+  const [addStudentLoading, setAddStudentLoading] = useState(false);
+  const [addStudentFeedback, setAddStudentFeedback] = useState(null);
+  const resetNewClassForm = useCallback(() => {
+    setNewClass({
+      name: "",
+      teacher: "",
+      teacherId: "",
+      teacherDepartment: "",
+      room: "",
+      day: "Mon",
+      startTime: "08:00",
+      endTime: "09:00",
+      courses: [],
+    });
+    setTeacherSuggestions([]);
+    setShowTeacherSuggestions(false);
+  }, []);
+
+  const closeAddClassModal = useCallback(() => {
+    setIsAddFormOpen(false);
+    resetNewClassForm();
+  }, [resetNewClassForm]);
 
   const fetchClasses = useCallback(async () => {
     try {
@@ -56,6 +84,7 @@ export default function ManageClasses({ onBack }) {
           startTime: cls.schedule.split(' ')[1]?.split('-')[0] || '09:00',
           endTime: cls.schedule.split(' ')[1]?.split('-')[1] || '10:00',
           courses: cls.courses || [],
+          enrolledStudents: cls.enrolled_students || [],
           _id: cls._id
         };
       });
@@ -113,19 +142,64 @@ export default function ManageClasses({ onBack }) {
     }
   };
 
-  const dayOptions = [
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const fetchStudentsForEnrollment = useCallback(async () => {
+    try {
+      setStudentsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/students`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch students");
+      }
+      const data = await response.json();
+      const transformedStudents = (data.students || []).map((student) => ({
+        id: student.student_id,
+        name: `${student.first_name || ""} ${student.last_name || ""}`.trim(),
+        course: student.course || "",
+        year: student.year || ""
+      }));
+      setAllStudents(transformedStudents);
+    } catch (err) {
+      setError(`Error fetching students: ${err.message}`);
+    } finally {
+      setStudentsLoading(false);
+    }
+  }, []);
+
+const dayOptions = [
     { label: "Monday", value: "Mon" },
     { label: "Tuesday", value: "Tue" },
     { label: "Wednesday", value: "Wed" },
     { label: "Thursday", value: "Thu" },
     { label: "Friday", value: "Fri" },
     { label: "Saturday", value: "Sat" },
-
+    { label: "Sunday", value: "Sun" }
   ];
 
-  const handleAddClass = async () => {
+  const handleAddClass = useCallback(async () => {
     if (newClass.name && newClass.teacher && newClass.room && newClass.day && newClass.startTime && newClass.endTime) {
-      const classId = `CLS${String(classes.length + 1).padStart(3, '0')}`;
+      // Generate a unique class code that doesn't conflict with existing ones
+      const existingCodes = new Set(classes.map(c => c.id));
+      let classId = '';
+      let counter = 1;
+      
+      while (true) {
+        const candidateId = `CLS${String(counter).padStart(3, '0')}`;
+        if (!existingCodes.has(candidateId)) {
+          classId = candidateId;
+          break;
+        }
+        counter++;
+        // Safety check to prevent infinite loop
+        if (counter > 1000) {
+          // Fallback to timestamp-based ID if we can't find a unique ID
+          classId = `CLS${Date.now()}`;
+          break;
+        }
+      }
 
       try {
         const classData = {
@@ -148,7 +222,7 @@ export default function ManageClasses({ onBack }) {
         const result = await response.json();
 
         if (response.ok) {
-          setNewClass({ name: "", teacher: "", teacherId: "", teacherDepartment: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
+          closeAddClassModal();
           fetchClasses(); // Refresh the list
         } else {
           const errorMsg = result.detail || (typeof result.error === 'string' ? result.error : JSON.stringify(result.error));
@@ -158,7 +232,7 @@ export default function ManageClasses({ onBack }) {
         setError(`Error creating class: ${error.message}`);
       }
     }
-  };
+  }, [newClass, classes, fetchClasses, closeAddClassModal]);
 
   const handleTeacherInputChange = (e) => {
     const value = e.target.value;
@@ -229,6 +303,60 @@ export default function ManageClasses({ onBack }) {
   const handleView = (cls) => {
     setSelectedClass(cls);
     setIsViewModalOpen(true);
+  };
+
+  const handleOpenAddStudent = async (cls) => {
+    setClassForStudentAdd(cls);
+    setStudentSearchTerm("");
+    setAddStudentFeedback(null);
+    setIsAddStudentModalOpen(true);
+    await fetchStudentsForEnrollment();
+  };
+
+  const handleAddStudentToClass = async (student) => {
+    if (!classForStudentAdd || !student?.id) return;
+
+    try {
+      setAddStudentLoading(true);
+      setAddStudentFeedback(null);
+
+      const response = await fetch(`${API_BASE_URL}/classes/${classForStudentAdd._id}/enroll-student`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({ student_id: student.id })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          alert("Session expired. Please log in again.");
+          window.location.href = "/login";
+          return;
+        }
+        throw new Error(result.detail || result.error || "Failed to add student");
+      }
+
+      setAddStudentFeedback(result.message || "Student added successfully");
+      setClassForStudentAdd((prev) => {
+        if (!prev) return prev;
+        const enrolled = new Set(prev.enrolledStudents || []);
+        enrolled.add(student.id);
+        return {
+          ...prev,
+          enrolledStudents: Array.from(enrolled),
+          students: enrolled.size
+        };
+      });
+      await fetchClasses();
+    } catch (err) {
+      setAddStudentFeedback(`Error: ${err.message}`);
+    } finally {
+      setAddStudentLoading(false);
+    }
   };
 
   const handleEdit = (cls) => {
@@ -305,14 +433,30 @@ export default function ManageClasses({ onBack }) {
   const closeModals = () => {
     setIsViewModalOpen(false);
     setIsEditModalOpen(false);
+    setIsAddStudentModalOpen(false);
     setSelectedClass(null);
+    setClassForStudentAdd(null);
+    setStudentSearchTerm("");
+    setAddStudentFeedback(null);
   };
 
   const filteredClasses = classes.filter(cls => {
-    return selectedDay === null || cls.day === selectedDay;
+    const matchesDay = selectedDay === null || cls.day === selectedDay;
+    const matchesSearch = searchTerm === "" || cls.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesDay && matchesSearch;
   });
 
   const formatSchedule = (c) => `${dayOptions.find(d => d.value === c.day)?.label || c.day} ${c.startTime} - ${c.endTime}`;
+  const enrolledStudentIds = new Set(classForStudentAdd?.enrolledStudents || []);
+  const filteredStudentsForAdd = allStudents.filter((student) => {
+    const query = studentSearchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      student.name.toLowerCase().includes(query) ||
+      student.id.toLowerCase().includes(query) ||
+      student.course.toLowerCase().includes(query)
+    );
+  });
 
   if (loading) {
     return (
@@ -345,147 +489,168 @@ export default function ManageClasses({ onBack }) {
         </button>
       </div>
 
-      <div className="filter-buttons">
-        <button
-          className={`filter-btn ${selectedDay === null ? 'active' : ''}`}
-          onClick={() => setSelectedDay(null)}
-        >
-          All
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Mon' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Mon')}
-        >
-          Monday
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Tue' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Tue')}
-        >
-          Tuesday
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Wed' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Wed')}
-        >
-          Wednesday
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Thu' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Thu')}
-        >
-          Thursday
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Fri' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Fri')}
-        >
-          Friday
-        </button>
-        <button
-          className={`filter-btn ${selectedDay === 'Sat' ? 'active' : ''}`}
-          onClick={() => setSelectedDay('Sat')}
-        >
-          Saturday
-        </button>
-      </div>
+      <div className="controls-toolbar" style={{ display: "flex", justifyContent: "center", alignItems: "center", margin: "20px 0", gap: "20px" }}>
+        <div className="filter-group" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <label htmlFor="day-filter" style={{ fontWeight: "600", fontSize: "14px", color: "#444" }}>Filter by Day:</label>
+          <select
+            id="day-filter"
+            className="day-filter-select"
+            value={selectedDay || ''}
+            onChange={(e) => setSelectedDay(e.target.value === '' ? null : e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              backgroundColor: "white",
+              color: "#333",
+              cursor: "pointer",
+              minWidth: "150px"
+            }}
+          >
+            <option value="">All Days</option>
+            {dayOptions.map((day) => (
+              <option key={day.value} value={day.value}>
+                {day.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {!isAddFormOpen && (
+        <div className="search-group" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <label htmlFor="class-search" style={{ fontWeight: "600", fontSize: "14px", color: "#444" }}>Search:</label>
+          <input
+            id="class-search"
+            type="text"
+            placeholder="Search class name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              minWidth: "200px"
+            }}
+          />
+        </div>
+
         <div className="add-class-button">
           <button className="primary" onClick={() => setIsAddFormOpen(true)}>Add Class</button>
         </div>
-      )}
+      </div>
 
       {isAddFormOpen && (
-        <div className="add-class-form">
-          <h2>Add New Class</h2>
-          <div className="form-row">
-            <input
-              type="text"
-              placeholder="Class Name"
-              value={newClass.name}
-              onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
-            />
-            <div className="teacher-input-container">
-              <input
-                type="text"
-                placeholder="Teacher Name or ID"
-                value={newClass.teacher}
-                onChange={handleTeacherInputChange}
-                onBlur={() => setTimeout(() => setShowTeacherSuggestions(false), 200)}
-                onFocus={() => {
-                  if (newClass.teacher.length > 0 && teacherSuggestions.length > 0) {
-                    setShowTeacherSuggestions(true);
-                  }
-                }}
-              />
-              {showTeacherSuggestions && teacherSuggestions.length > 0 && (
-                <div className="teacher-suggestions">
-                  {teacherSuggestions.map((teacher) => (
-                    <div
-                      key={teacher.id}
-                      className="teacher-suggestion-item"
-                      onClick={() => handleTeacherSelect(teacher)}
-                    >
-                      <div className="teacher-name">{teacher.name}</div>
-                      <div className="teacher-id">{teacher.id}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <input
-              type="text"
-              placeholder="Room"
-              value={newClass.room}
-              onChange={(e) => setNewClass({ ...newClass, room: e.target.value })}
-            />
-            <select
-              value={newClass.day}
-              onChange={(e) => setNewClass({ ...newClass, day: e.target.value })}
-              className="day-select"
-            >
-              {dayOptions.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
-              ))}
-            </select>
-            <input
-              type="time"
-              value={newClass.startTime}
-              onChange={(e) => setNewClass({ ...newClass, startTime: e.target.value })}
-            />
-            <input
-              type="time"
-              value={newClass.endTime}
-              onChange={(e) => setNewClass({ ...newClass, endTime: e.target.value })}
-            />
-              <div className="course-selection">
-              <label>Courses:</label>
-              <div className="course-checkboxes">
-                {courses.map((course) => {
-                  const code = course.code || course;
-                  const level = course.level || "unknown";
-                  const isDisabled = !newClass.teacherDepartment ||
-                    (newClass.teacherDepartment !== "both" && newClass.teacherDepartment !== level);
-                  return (
-                    <label key={code} className="course-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={(newClass.courses || []).includes(code)}
-                        onChange={(e) => handleCourseChange(code, e.target.checked)}
-                        disabled={isDisabled}
-                      />
-                      {code}
-                    </label>
-                  );
-                })}
+        <div className="modal-overlay" onClick={closeAddClassModal}>
+          <div className="modal-content add-class-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Add New Class</h2>
+            <form className="add-class-form-modal">
+              <div className="form-group">
+                <label>Class Name:</label>
+                <input
+                  type="text"
+                  placeholder="Class Name"
+                  value={newClass.name}
+                  onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
+                />
               </div>
+              <div className="form-group">
+                <label>Teacher:</label>
+                <div className="teacher-input-container">
+                  <input
+                    type="text"
+                    placeholder="Teacher Name or ID"
+                    value={newClass.teacher}
+                    onChange={handleTeacherInputChange}
+                    onBlur={() => setTimeout(() => setShowTeacherSuggestions(false), 200)}
+                    onFocus={() => {
+                      if (newClass.teacher.length > 0 && teacherSuggestions.length > 0) {
+                        setShowTeacherSuggestions(true);
+                      }
+                    }}
+                  />
+                  {showTeacherSuggestions && teacherSuggestions.length > 0 && (
+                    <div className="teacher-suggestions">
+                      {teacherSuggestions.map((teacher) => (
+                        <div
+                          key={teacher.id}
+                          className="teacher-suggestion-item"
+                          onClick={() => handleTeacherSelect(teacher)}
+                        >
+                          <div className="teacher-name">{teacher.name}</div>
+                          <div className="teacher-id">{teacher.id}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Room:</label>
+                <input
+                  type="text"
+                  placeholder="Room"
+                  value={newClass.room}
+                  onChange={(e) => setNewClass({ ...newClass, room: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Day:</label>
+                <select
+                  value={newClass.day}
+                  onChange={(e) => setNewClass({ ...newClass, day: e.target.value })}
+                  className="day-select"
+                >
+                  {dayOptions.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-row-inline">
+                <div className="form-group">
+                  <label>Start Time:</label>
+                  <input
+                    type="time"
+                    value={newClass.startTime}
+                    onChange={(e) => setNewClass({ ...newClass, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>End Time:</label>
+                  <input
+                    type="time"
+                    value={newClass.endTime}
+                    onChange={(e) => setNewClass({ ...newClass, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Courses/Strands:</label>
+                <div className="course-checkboxes">
+                  {courses.map((course) => {
+                    const code = course.code || course;
+                    const level = course.level || "unknown";
+                    const isDisabled = !newClass.teacherDepartment ||
+                      (newClass.teacherDepartment !== "both" && newClass.teacherDepartment !== level);
+                    return (
+                      <label key={code} className="course-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={(newClass.courses || []).includes(code)}
+                          onChange={(e) => handleCourseChange(code, e.target.checked)}
+                          disabled={isDisabled}
+                        />
+                        {code}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </form>
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={handleAddClass}>Add Class</button>
+              <button className="btn-secondary" onClick={closeAddClassModal}>Cancel</button>
             </div>
-            <button className="primary" onClick={handleAddClass}>Add Class</button>
-            <button className="secondary" onClick={() => {
-              setIsAddFormOpen(false);
-              setNewClass({ name: "", teacher: "", teacherId: "", teacherDepartment: "", room: "", day: "Mon", startTime: "08:00", endTime: "09:00", courses: [] });
-            }}>Cancel</button>
           </div>
         </div>
       )}
@@ -506,7 +671,7 @@ export default function ManageClasses({ onBack }) {
           </thead>
           <tbody>
             {filteredClasses.map((cls) => (
-              <tr key={cls.id}>
+              <tr key={cls.id} onClick={() => handleView(cls)} style={{ cursor: "pointer" }}>
                 <td>{cls.id}</td>
                 <td>{cls.name}</td>
                 <td>{cls.teacher}</td>
@@ -515,9 +680,9 @@ export default function ManageClasses({ onBack }) {
                 <td>{cls.room}</td>
                 <td>{formatSchedule(cls)}</td>
                 <td>
-                  <button className="action-btn view" onClick={() => handleView(cls)}>👁️ View</button>
-                  <button className="action-btn edit" onClick={() => handleEdit(cls)}>✏️ Edit</button>
-                  <button className="action-btn delete" onClick={() => handleDelete(cls)}>🗑️ Delete</button>
+                  <button className="action-btn add-student" onClick={(e) => { e.stopPropagation(); handleOpenAddStudent(cls); }} style={{ backgroundColor: "#10b981", color: "white" }}>Add Student</button>
+                  <button className="action-btn edit" onClick={(e) => { e.stopPropagation(); handleEdit(cls); }}>✏️ Edit</button>
+                  <button className="action-btn delete" onClick={(e) => { e.stopPropagation(); handleDelete(cls); }}>🗑️ Delete</button>
                 </td>
               </tr>
             ))}
@@ -525,7 +690,59 @@ export default function ManageClasses({ onBack }) {
         </table>
       </div>
 
+      {isAddStudentModalOpen && classForStudentAdd && (
+        <div className="modal-overlay" onClick={closeModals}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Add Student to {classForStudentAdd.name}</h2>
+            <div className="form-group">
+              <label>Search student</label>
+              <input
+                type="text"
+                placeholder="Search by name, ID, or course..."
+                value={studentSearchTerm}
+                onChange={(e) => setStudentSearchTerm(e.target.value)}
+              />
+            </div>
 
+            {addStudentFeedback && (
+              <div className="detail-row">
+                <strong>{addStudentFeedback}</strong>
+              </div>
+            )}
+
+            <div className="classes-list">
+              {studentsLoading ? (
+                <div className="loading">Loading students...</div>
+              ) : filteredStudentsForAdd.length === 0 ? (
+                <div className="loading">No students found.</div>
+              ) : (
+                filteredStudentsForAdd.map((student) => {
+                  const alreadyEnrolled = enrolledStudentIds.has(student.id);
+                  return (
+                    <div key={student.id} className="class-item">
+                      <div><strong>{student.name || "Unnamed Student"}</strong> ({student.id})</div>
+                      <div>{student.course} | Year {student.year}</div>
+                      <div className="modal-actions" style={{ marginTop: "8px" }}>
+                        <button
+                          className="btn-primary"
+                          disabled={alreadyEnrolled || addStudentLoading}
+                          onClick={() => handleAddStudentToClass(student)}
+                        >
+                          {alreadyEnrolled ? "Already Enrolled" : "Add Student"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={closeModals}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isViewModalOpen && selectedClass && (
         <div className="modal-overlay" onClick={closeModals}>
@@ -616,6 +833,7 @@ export default function ManageClasses({ onBack }) {
                 <select
                   value={editForm.day || 'Mon'}
                   onChange={(e) => setEditForm({ ...editForm, day: e.target.value })}
+                  className="day-select"
                 >
                   {dayOptions.map((d) => (
                     <option key={d.value} value={d.value}>{d.label}</option>

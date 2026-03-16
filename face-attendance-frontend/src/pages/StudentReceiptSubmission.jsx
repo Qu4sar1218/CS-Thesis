@@ -52,7 +52,7 @@ function StudentReceiptSubmission({ studentId, onBack }) {
         video: {
           width: { ideal: 640 },
           height: { ideal: 480 },
-          facingMode: "environment" // Use back camera for receipts
+          facingMode: "user" // Use front camera (same as face recognition)
         },
         audio: false
       });

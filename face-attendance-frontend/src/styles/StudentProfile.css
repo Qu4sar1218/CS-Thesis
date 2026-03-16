@@ -29,19 +29,32 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Main Card */
+/* Main Card - Landscape Layout */
 .profile-main-card {
   width: 100%;
-  max-width: 700px;
+  max-width: 1500px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   padding: 32px;
   backdrop-filter: blur(10px);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 32px;
+}
+
+/* Left Panel - Profile Info */
+.profile-left-panel {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
+}
+
+/* Right Panel - Attendance Insights */
+.profile-right-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Profile Header */
@@ -279,6 +292,11 @@
   color: #10b981;
 }
 
+.status-badge.late {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
 .status-badge.absent {
   background: rgba(239, 68, 68, 0.2);
   color: #ef4444;
@@ -347,6 +365,14 @@
 }
 
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .profile-main-card {
+    max-width: 100%;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .student-profile-page {
     padding: 16px;
@@ -355,6 +381,7 @@
   .profile-main-card {
     padding: 24px;
     gap: 24px;
+    grid-template-columns: 1fr;
   }
 
   .profile-header {
@@ -393,3 +420,4 @@
     flex-direction: column;
   }
 }
+
