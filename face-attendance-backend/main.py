@@ -2488,7 +2488,8 @@ def snapshot():
     if latest_frame is None:
         return JSONResponse({"error": "No frame available"}, status_code=404)
 
-    from fastapi.responses import Response
+    from 
+    fastapi.responses import Response
     return Response(content=latest_frame, media_type="image/jpeg")
 
 

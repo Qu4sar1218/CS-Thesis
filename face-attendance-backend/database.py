@@ -1,8 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, status
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict
-import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 from passlib.context import CryptContext
@@ -12,12 +11,7 @@ import re
 import uuid
 import logging
 import os
-import glob
-import pickle
-import platform
-import numpy as np
-import cv2
-from werkzeug.utils import secure_filename
+
 
 # Shared globals from main.py
 client: AsyncIOMotorClient = None
@@ -136,7 +130,7 @@ class ReceiptBase(BaseModel):
 class ReceiptCreate(BaseModel):
     student_id: str
     event_id: str
-    transaction_id: str = Field(..., pattern=r'^\\d{6}$')
+    transaction_id: str = Field(..., pattern=r'^\d{6}$')
     receipt_image: str
 
 class Receipt(ReceiptBase):
