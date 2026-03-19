@@ -25,13 +25,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from werkzeug.utils import secure_filename
 
-# Face recognition import
+import utils  # Setup face recognition model FIRST (local import)
+from utils import setup_face_recognition_model, is_face_model_ready
+
+# Face recognition import - model now properly configured
 try:
     import face_recognition
     HAVE_FACE_RECOG = True
-except Exception as e:
-    print(f"[WARN] face_recognition missing: {e}")
+except ImportError as e:
+    print(f"[WARN] face_recognition package missing: {e}")
     HAVE_FACE_RECOG = False
+except Exception as e:
+    print(f"[WARN] face_recognition import failed: {e}")
+    HAVE_FACE_RECOG = False
+
+# Setup model path if package available
+if HAVE_FACE_RECOG:
+    setup_face_recognition_model()
 
 # Config
 DEBUG = True
@@ -2124,7 +2134,7 @@ def start():
             detection_thread = threading.Thread(target=detection_worker, daemon=True)
             detection_thread.start()
         else:
-            logger.warning("face_recognition is not available; live stream will run without detection/recognition")
+            logger.warning("face_recognition model not ready; live stream will run without detection/recognition. Run `python -c 'from utils import setup_face_recognition_model; print(setup_face_recognition_model())'` to debug.")
         logger.info("✅ Recognition thread started")
     except Exception as e:
         logger.error(f"❌ Failed to start recognition thread: {e}")
@@ -2488,8 +2498,7 @@ def snapshot():
     if latest_frame is None:
         return JSONResponse({"error": "No frame available"}, status_code=404)
 
-    from 
-    fastapi.responses import Response
+    from fastapi.responses import Response
     return Response(content=latest_frame, media_type="image/jpeg")
 
 

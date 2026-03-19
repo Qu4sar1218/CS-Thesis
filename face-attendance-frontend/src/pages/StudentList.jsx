@@ -22,15 +22,16 @@ const formatStudentName = (firstName, middleName, lastName) => {
 };
 
 export default function StudentList({ onBack }) {
-  const [students, setStudents] = useState([]);
+// const [students, setStudents] = useState([]); // Deprecated, use rawStudents
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
+// const [searchTerm, setSearchTerm] = useState(""); // Deprecated
+// const [selectedCourse, setSelectedCourse] = useState(null); // Deprecated
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editForm, setEditForm] = useState({});
+const [editForm, setEditForm] = useState({});
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
@@ -49,7 +50,22 @@ export default function StudentList({ onBack }) {
   const [isEnrollAllModalOpen, setIsEnrollAllModalOpen] = useState(false);
   const [studentToEnrollAll, setStudentToEnrollAll] = useState(null);
   const [enrollAllLoading, setEnrollAllLoading] = useState(false);
-  const [enrollAllResult, setEnrollAllResult] = useState(null);
+const [enrollAllResult, setEnrollAllResult] = useState(null);
+
+  // Advanced filter states (copied from Analytics)
+  const [rawStudents, setRawStudents] = useState([]);
+  const [filteredStudentsState, setFilteredStudentsState] = useState([]);
+  const [filters, setFilters] = useState({
+    search: '',
+    course: 'All',
+    yearLevel: 'All'
+  });
+  const [yearLevels, setYearLevels] = useState([]);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const studentsPerPage = 10;
 
   // Fetch students, courses, and classes from API
   useEffect(() => {
@@ -58,7 +74,7 @@ export default function StudentList({ onBack }) {
     fetchClasses();
   }, []);
 
-  const fetchStudents = async () => {
+const fetchStudents = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/students`);
@@ -74,13 +90,21 @@ export default function StudentList({ onBack }) {
         id: student.student_id,
         name: formatStudentName(student.first_name, student.middle_name, student.last_name),
         course: student.course,
-        year: student.year,
+        year: student.year || 'Unknown',
         section: 'A', // Default section since not in API
         email: student.email,
         contact: 'N/A', // Not in API
         _id: student._id
       }));
-      setStudents(transformedStudents);
+      
+      // Set raw data and derive year levels like Analytics
+      setRawStudents(transformedStudents);
+      const yearSet = new Set(transformedStudents.map(s => s.year || 'Unknown'));
+      const sortedYears = Array.from(yearSet).sort();
+      setYearLevels(['All', ...sortedYears]);
+      
+      // Initial filter
+      setFilteredStudentsState(transformedStudents);
       setError(null);
     } catch (err) {
       if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
@@ -144,28 +168,57 @@ export default function StudentList({ onBack }) {
     }
   };
 
-  const filteredStudents = students
-    .filter(student => {
-      const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.course.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.id.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCourse = selectedCourse === null || student.course === selectedCourse;
-      return matchesSearch && matchesCourse;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "course":
-          return a.course.localeCompare(b.course);
-        case "year":
-          return a.year.localeCompare(b.year);
-        case "id":
-          return a.id.localeCompare(b.id);
-        default:
-          return 0;
-      }
-    });
+  const filteredStudentsStateSorted = [...filteredStudentsState].sort((a, b) => {
+    switch (sortBy) {
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "course":
+        return a.course.localeCompare(b.course);
+      case "year":
+        return a.year.localeCompare(b.year);
+      case "id":
+        return a.id.localeCompare(b.id);
+      default:
+        return 0;
+    }
+  });
+
+  // Pagination logic
+  const indexOfLastStudent = currentPage * studentsPerPage;
+  const indexOfFirstStudent = indexOfLastStudent - studentsPerPage;
+  const currentStudents = filteredStudentsStateSorted.slice(indexOfFirstStudent, indexOfLastStudent);
+  const totalPages = Math.ceil(filteredStudentsStateSorted.length / studentsPerPage);
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyFilters = () => {
+    let data = [...rawStudents];
+
+    // Search filter
+    if (filters.search.trim()) {
+      const query = filters.search.toLowerCase().trim();
+      data = data.filter(student =>
+        student.name.toLowerCase().includes(query) ||
+        student.course.toLowerCase().includes(query) ||
+        student.id.toLowerCase().includes(query)
+      );
+    }
+
+    // Course filter
+    if (filters.course !== 'All') {
+      data = data.filter(s => s.course === filters.course);
+    }
+
+    // Year filter
+    if (filters.yearLevel !== 'All') {
+      data = data.filter(s => s.year === filters.yearLevel);
+    }
+
+    setFilteredStudentsState(data);
+    setCurrentPage(1); // Reset to first page
+  };
 
   const handleView = (student) => {
     setSelectedStudent(student);
@@ -174,16 +227,55 @@ export default function StudentList({ onBack }) {
 
   const handleEdit = (student) => {
     setSelectedStudent(student);
-    setEditForm({ ...student });
+    
+    // Parse formatted name back to first/middle/last
+    const { firstName, middleName, lastName } = parseFormattedName(student.name);
+    
+    setEditForm({ 
+      ...student, 
+      firstName,
+      middleName, 
+      lastName 
+    });
     setIsEditModalOpen(true);
+  };
+
+  // Helper to parse formatted name (handles First M. Last, First Last, etc.)
+  const parseFormattedName = (formattedName) => {
+    if (!formattedName) return { firstName: '', middleName: '', lastName: '' };
+    
+    const parts = formattedName.trim().split(/\s+/);
+    if (parts.length === 0) return { firstName: '', middleName: '', lastName: '' };
+    
+    let firstName = parts[0];
+    let lastName = '';
+    let middleName = '';
+    
+    if (parts.length === 2) {
+      // First Last
+      lastName = parts[1];
+    } else if (parts.length === 3 && parts[1].endsWith('.')) {
+      // First M. Last
+      firstName = parts[0];
+      middleName = parts[1].slice(0, -1); // Remove dot
+      lastName = parts[2];
+    } else {
+      // First Middle Last or more complex - take first as first, last as last, middle as rest
+      firstName = parts[0];
+      lastName = parts[parts.length - 1];
+      middleName = parts.slice(1, -1).join(' ');
+    }
+    
+    return { firstName, middleName, lastName };
   };
 
   const handleSaveEdit = async () => {
     try {
       const updateData = {
         student_id: editForm.id,
-        first_name: editForm.name.split(' ')[0] || editForm.name,
-        last_name: editForm.name.split(' ').slice(1).join(' ') || '',
+        first_name: editForm.firstName || '',
+        middle_name: editForm.middleName || '',
+        last_name: editForm.lastName || '',
         course: editForm.course,
         year: editForm.year,
         email: editForm.email,
@@ -345,6 +437,9 @@ export default function StudentList({ onBack }) {
     setEnrollType(null);
   };
 
+  // Remove old state setters - no longer used
+  // setSearchTerm, setSelectedCourse replaced by filters
+
   if (loading) {
     return (
       <div className="student-list">
@@ -382,38 +477,37 @@ export default function StudentList({ onBack }) {
         <div className="metric-card">
           <div className="metric-icon">👥</div>
           <div className="metric-content">
-            <div className="metric-value">{filteredStudents.length}</div>
-            <div className="metric-label">Total Students</div>
+            <div className="metric-value">{filteredStudentsState.length}</div>
+            <div className="metric-label">Filtered Students</div>
           </div>
         </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="controls-bar">
-        <div className="search-section">
-          <div className="search-wrapper">
-            <span className="search-icon">🔍</span>
+      {/* Advanced Filters (Copied from Analytics) */}
+      <div className="filters-section">
+        <div className="filters-grid">
+          {/* Search */}
+          <div className="filter-group">
+            <label>Search</label>
             <input
               type="text"
-              placeholder="Search by name, course, or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
+              className="filter-select"
+              placeholder="Name, course, or ID..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
             />
           </div>
-        </div>
-
-        <div className="filters-section">
+          
+          {/* Course */}
           <div className="filter-group">
-            <label htmlFor="course-filter">Course:</label>
-            <select
-              id="course-filter"
-              value={selectedCourse || ""}
-              onChange={(e) => setSelectedCourse(e.target.value === "" ? null : e.target.value)}
-              className="filter-select"
+            <label>Course</label>
+            <select 
+              className="filter-select" 
+              value={filters.course} 
+              onChange={(e) => handleFilterChange('course', e.target.value)}
               disabled={coursesLoading || coursesError}
             >
-              <option value="">All Courses</option>
+              <option value="All">All Courses</option>
               {courses.map((course) => (
                 <option key={course.code} value={course.code}>
                   {course.code} - {course.name}
@@ -424,81 +518,142 @@ export default function StudentList({ onBack }) {
             {coursesError && <span className="error-text">{coursesError}</span>}
           </div>
 
+          {/* Year Level */}
           <div className="filter-group">
-            <label htmlFor="sort-filter">Sort by:</label>
+            <label>Year Level</label>
+            <select 
+              className="filter-select" 
+              value={filters.yearLevel} 
+              onChange={(e) => handleFilterChange('yearLevel', e.target.value)}
+            >
+              <option value="All">All</option>
+              {yearLevels.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort */}
+          <div className="filter-group">
+            <label>Sort</label>
             <select
-              id="sort-filter"
+              className="filter-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="filter-select"
             >
               <option value="name">Name</option>
               <option value="course">Course</option>
-              <option value="year">Year Level</option>
-              <option value="id">Student ID</option>
+              <option value="year">Year</option>
+              <option value="id">ID</option>
             </select>
           </div>
+
+          {/* Apply Button */}
+          <button 
+            className="analytics-btn analytics-btn-primary" 
+            onClick={applyFilters}
+            disabled={loading}
+          >
+            🔍 Apply Filters ({filteredStudentsState.length})
+          </button>
         </div>
       </div>
 
       {/* Student Cards Grid */}
       <div className="students-grid">
-        {filteredStudents.map((student) => (
-          <div key={student.id} className="student-card">
-            <div className="student-header">
-              <div className="student-avatar">
-                <span className="avatar-icon">👤</span>
+        {currentStudents.length > 0 ? (
+          currentStudents.map((student) => (
+            <div key={student.id} className="student-card">
+              <div className="student-header">
+                <div className="student-avatar">
+                  <span className="avatar-icon">👤</span>
+                </div>
+                <div className="student-basic-info">
+                  <h3 className="student-name">{student.name}</h3>
+                  <p className="student-id">STU {student.id}</p>
+                </div>
               </div>
-              <div className="student-basic-info">
-                <h3 className="student-name">{student.name}</h3>
-                <p className="student-id">STU {student.id}</p>
-              </div>
-            </div>
 
-            <div className="student-details">
-              <div className="detail-row">
-                <span className="detail-label">Course:</span>
-                <span className="detail-value">{student.course}</span>
+              <div className="student-details">
+                <div className="detail-row">
+                  <span className="detail-label">Course:</span>
+                  <span className="detail-value">{student.course}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Year:</span>
+                  <span className="detail-value">{student.year}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Section:</span>
+                  <span className="detail-value">{student.section || <span className="muted-placeholder">Not assigned</span>}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Email:</span>
+                  <span className="detail-value">{student.email}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Contact:</span>
+                  <span className="detail-value">{student.contact || <span className="muted-placeholder">Not provided</span>}</span>
+                </div>
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Year:</span>
-                <span className="detail-value">{student.year}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Section:</span>
-                <span className="detail-value">{student.section || <span className="muted-placeholder">Not assigned</span>}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Email:</span>
-                <span className="detail-value">{student.email}</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Contact:</span>
-                <span className="detail-value">{student.contact || <span className="muted-placeholder">Not provided</span>}</span>
-              </div>
-            </div>
 
-            <div className="student-actions">
-              <button className="action-btn view" onClick={() => handleView(student)}>
-                <span className="btn-icon">👁️</span>
-                <span className="btn-text">View</span>
-              </button>
-              <button className="action-btn enroll" onClick={() => handleEnroll(student)}>
-                <span className="btn-icon">📝</span>
-                <span className="btn-text">Enroll</span>
-              </button>
-              <button className="action-btn edit" onClick={() => handleEdit(student)}>
-                <span className="btn-icon">✏️</span>
-                <span className="btn-text">Edit</span>
-              </button>
-              <button className="action-btn delete" onClick={() => handleDelete(student)}>
-                <span className="btn-icon">🗑️</span>
-                <span className="btn-text">Delete</span>
-              </button>
+              <div className="student-actions">
+                <button className="action-btn view" onClick={() => handleView(student)}>
+                  <span className="btn-icon">👁️</span>
+                  <span className="btn-text">View</span>
+                </button>
+                <button className="action-btn enroll" onClick={() => handleEnroll(student)}>
+                  <span className="btn-icon">📝</span>
+                  <span className="btn-text">Enroll</span>
+                </button>
+                <button className="action-btn edit" onClick={() => handleEdit(student)}>
+                  <span className="btn-icon">✏️</span>
+                  <span className="btn-text">Edit</span>
+                </button>
+                <button className="action-btn delete" onClick={() => handleDelete(student)}>
+                  <span className="btn-icon">🗑️</span>
+                  <span className="btn-text">Delete</span>
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : filteredStudentsStateSorted.length > 0 ? (
+          <div className="no-results">No students on this page</div>
+        ) : (
+          <div className="no-results">No students found matching filters</div>
+        )}
       </div>
+
+      {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button 
+              className="pagination-btn prev"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              ← Previous
+            </button>
+            <span className="pagination-info">
+              Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> 
+              ({filteredStudentsStateSorted.length} total)
+            </span>
+            <button 
+              className="analytics-btn analytics-btn-primary"
+              onClick={() => console.log('Analytics for', filteredStudentsStateSorted.map(s => s.id))}
+            >
+              📊
+            </button>
+            <button 
+              className="pagination-btn next"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+
 
       {/* Back Button */}
       <div className="page-actions">
@@ -541,13 +696,34 @@ export default function StudentList({ onBack }) {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Edit Student</h2>
             <form className="edit-form">
-              <div className="form-group">
-                <label>Name:</label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                />
+              <div className="name-group">
+                <div className="form-group">
+                  <label>First Name:</label>
+                  <input
+                    type="text"
+                    value={editForm.firstName || ''}
+                    onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                    placeholder="First name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Middle Name:</label>
+                  <input
+                    type="text"
+                    value={editForm.middleName || ''}
+                    onChange={(e) => setEditForm({ ...editForm, middleName: e.target.value })}
+                    placeholder="Middle name (optional)"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Last Name:</label>
+                  <input
+                    type="text"
+                    value={editForm.lastName || ''}
+                    onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                    placeholder="Last name"
+                  />
+                </div>
               </div>
               <div className="form-group">
                 <label>Course:</label>

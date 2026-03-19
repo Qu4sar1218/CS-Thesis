@@ -103,22 +103,20 @@ function StatusPanel({ mode, subject }) {
     }
   }, [attendanceMode, BACKEND_URL]);
 
-  const fetchPaymentStatuses = useCallback(async (attendanceRecords, currentEventId) => {
-    if (mode !== 'events' || !currentEventId) return;
-
-    const statuses = {};
-    for (const record of attendanceRecords) {
-      try {
-        const response = await axios.get(`${BACKEND_URL}/students/${record.student_id}/payment-status/${currentEventId}`);
-        // Store the full response to access receipt_status
-        statuses[record.student_id] = response.data;
-      } catch (err) {
-        console.error(`Error fetching payment status for ${record.student_id}:`, err);
-        statuses[record.student_id] = { paid: false, receipt_status: "not_found" };
-      }
-    }
-    setPaymentStatuses(statuses);
-  }, [BACKEND_URL, mode]);
+  /* UNUSED: fetchPaymentStatuses - removed to fix ESLint no-unused-vars */
+  // const fetchPaymentStatuses = useCallback(async (attendanceRecords, currentEventId) => {
+  //   if (mode !== 'events' || !currentEventId) return;
+  //   const statuses = {};
+  //   for (const record of attendanceRecords) {
+  //     try {
+  //       const response = await axios.get(`${BACKEND_URL}/students/${record.student_id}/payment-status/${currentEventId}`);
+  //       statuses[record.student_id] = response.data;
+  //     } catch (err) {
+  //       console.error(`Error fetching payment status for ${record.student_id}:`, err);
+  //       statuses[record.student_id] = { paid: false, receipt_status: "not_found" };
+  //     }
+  //   }
+  // }, [BACKEND_URL, mode]);
 
   // Fetch payment status for the recently recognized student in events mode
   const fetchRecognizedPaymentStatus = useCallback(async (studentId, eventId) => {
@@ -133,12 +131,10 @@ function StatusPanel({ mode, subject }) {
     }
   }, [BACKEND_URL, mode]);
 
-  
-
   const fetchStatusData = useCallback(async () => {
     try {
       // Run multiple API calls in parallel for better performance
-      const [statusRes, attendanceRes, recognizedRes] = await Promise.allSettled([
+      const [statusRes, recognizedRes] = await Promise.allSettled([
         axios.get(`${BACKEND_URL}/status`),
         mode === "class" 
           ? axios.get(`${BACKEND_URL}/attendance/class/${subject?.classId || subject?.id}/today`)
@@ -213,8 +209,6 @@ function StatusPanel({ mode, subject }) {
         setTimeout(() => setMessage(null), 5000);
       }
 
-      // Payment statuses fetch removed (no UI usage)
-
       // Keep connection state in sync when recognition is stopped.
       if (statusOk && statusData && !statusData.recognition_running) {
         setStreamConnected(false);
@@ -223,7 +217,7 @@ function StatusPanel({ mode, subject }) {
     } catch (err) {
       console.error("Error fetching status:", err);
     }
-  }, [BACKEND_URL, mode, subject, fetchPaymentStatuses, fetchAttendanceMode, fetchRecognizedPaymentStatus, normalizeRecognized, useSnapshotFallback]);
+  }, [BACKEND_URL, mode, subject, fetchAttendanceMode, fetchRecognizedPaymentStatus, normalizeRecognized, useSnapshotFallback]);
 
   const configureMode = useCallback(async () => {
     if (mode === "class") {
