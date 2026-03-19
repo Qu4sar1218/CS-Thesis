@@ -134,7 +134,7 @@ function StatusPanel({ mode, subject }) {
   const fetchStatusData = useCallback(async () => {
     try {
       // Run multiple API calls in parallel for better performance
-      const [statusRes, recognizedRes] = await Promise.allSettled([
+      const [statusRes, , recognizedRes] = await Promise.allSettled([
         axios.get(`${BACKEND_URL}/status`),
         mode === "class" 
           ? axios.get(`${BACKEND_URL}/attendance/class/${subject?.classId || subject?.id}/today`)
@@ -720,7 +720,7 @@ function StatusPanel({ mode, subject }) {
           </footer>
         </section>
 
-        {recentlyRecognized && (
+        {recentlyRecognized ? (
           <section className="card student-details" aria-labelledby="student-details-heading">
             <h2 id="student-details-heading">Student Recognized</h2>
             <div className="student-info">
@@ -728,18 +728,16 @@ function StatusPanel({ mode, subject }) {
                 {/* Show attendance status GIF for both Class and Events modes when not processing */}
                 {!isProcessingRecognition && (
                   <div className="attendance-status-gif">
-                    {isAttendanceSuccess ? (
-                      <img 
-                        src="/check 2.gif" 
-                        alt="Attendance Verified" 
-                        className="status-gif success-gif"
-                      />
+{isAttendanceSuccess ? (
+                      <svg className="status-icon success" viewBox="0 0 64 64" role="img" aria-label="Attendance Success">
+                        <circle cx="32" cy="32" r="28" fill="#10b981" opacity="0.3"/>
+                        <path d="M20 32 l12 12 20 -20" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" className="check-path"/>
+                      </svg>
                     ) : (
-                      <img 
-                        src="/cross x.gif" 
-                        alt="Attendance Failed" 
-                        className="status-gif error-gif"
-                      />
+                      <svg className="status-icon fail" viewBox="0 0 64 64" role="img" aria-label="Attendance Failed">
+                        <circle cx="32" cy="32" r="28" fill="#ef4444" opacity="0.3"/>
+                        <path d="M20 20 L44 44 M44 20 L20 44" stroke="#ef4444" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" className="cross-path"/>
+                      </svg>
                     )}
                   </div>
                 )}
@@ -802,6 +800,18 @@ function StatusPanel({ mode, subject }) {
                   </p>
                 )}
               </div>
+            </div>
+          </section>
+        ) : (
+          <section className="card student-empty" aria-labelledby="student-ready-heading">
+            <h2 id="student-ready-heading">Ready for Recognition</h2>
+            <div className="student-empty-content">
+              <svg className="empty-icon" viewBox="0 0 64 64" aria-hidden="true">
+                <circle cx="32" cy="32" r="24" fill="none" stroke="currentColor" strokeWidth="3" opacity="0.3"/>
+                <path d="M24 24 Q32 16 40 24 Q32 32 24 24" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+              </svg>
+              <p>Position face toward camera</p>
+              <p className="empty-subtext">Student details will appear here when recognized</p>
             </div>
           </section>
         )}

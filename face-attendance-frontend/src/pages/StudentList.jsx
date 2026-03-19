@@ -4,6 +4,44 @@ import "../styles/StudentList.css";
 const API_BASE_URL = "http://localhost:8000";
 
 // Helper function to format student names as: Firstname M. Lastname
+const normalizeYear = (year) => {
+  if (!year || typeof year !== 'string') return 'Unknown';
+  
+  let normalized = year.trim().toLowerCase();
+  
+  // Handle Grade levels
+  if (normalized.includes('grade')) {
+    normalized = normalized.replace(/grade\s*(\d+)/i, 'Grade $1');
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+  
+  // Strip common suffixes
+  normalized = normalized.replace(/\s*(college|year level)/gi, '');
+  
+  // Standardize ordinal formats
+  const ordinalMap = {
+    '1st': '1st Year',
+    '2nd': '2nd Year', 
+    '3rd': '3rd Year',
+    '4th': '4th Year',
+    '1': '1st Year',
+    '2': '2nd Year',
+    '3': '3rd Year',
+    '4': '4th Year'
+  };
+  
+  for (const [key, value] of Object.entries(ordinalMap)) {
+    if (normalized.includes(key)) {
+      return value;
+    }
+  }
+  
+  // Fallback: title case
+  return normalized.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 const formatStudentName = (firstName, middleName, lastName) => {
   if (!firstName || !lastName) {
     return `${firstName || ''} ${lastName || ''}`.trim();
@@ -22,17 +60,21 @@ const formatStudentName = (firstName, middleName, lastName) => {
 };
 
 export default function StudentList({ onBack }) {
-// const [students, setStudents] = useState([]); // Deprecated, use rawStudents
+  // Multi-select deletion states
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // const [students, setStudents] = useState([]); // Deprecated, use rawStudents
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
 // const [searchTerm, setSearchTerm] = useState(""); // Deprecated
-// const [selectedCourse, setSelectedCourse] = useState(null); // Deprecated
+// const [selectedCourse, setSelectedCourse] = useState(null); // ESLint unused - deprecated
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 const [editForm, setEditForm] = useState({});
-  const [selectedCourse, setSelectedCourse] = useState(null);
   const [courses, setCourses] = useState([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [coursesError, setCoursesError] = useState(null);
@@ -97,9 +139,12 @@ const fetchStudents = async () => {
         _id: student._id
       }));
       
-      // Set raw data and derive year levels like Analytics
+      // Set raw data and derive year levels like Analytics (with normalization)
+      transformedStudents.forEach(s => {
+        s.normalizedYear = normalizeYear(s.year);
+      });
       setRawStudents(transformedStudents);
-      const yearSet = new Set(transformedStudents.map(s => s.year || 'Unknown'));
+      const yearSet = new Set(transformedStudents.map(s => s.normalizedYear));
       const sortedYears = Array.from(yearSet).sort();
       setYearLevels(['All', ...sortedYears]);
       
@@ -211,9 +256,9 @@ const fetchStudents = async () => {
       data = data.filter(s => s.course === filters.course);
     }
 
-    // Year filter
+    // Year filter (normalized)
     if (filters.yearLevel !== 'All') {
-      data = data.filter(s => s.year === filters.yearLevel);
+      data = data.filter(s => s.normalizedYear === filters.yearLevel);
     }
 
     setFilteredStudentsState(data);
@@ -303,6 +348,89 @@ const fetchStudents = async () => {
       }
     } catch (error) {
       setError(`Error updating student: ${error.message}`);
+    }
+  };
+
+  const toggleSelection = (studentId) => {
+    setSelectedStudents(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(studentId)) {
+        newSet.delete(studentId);
+        // If deselecting last item, clear select all
+        if (newSet.size === 0) setSelectAll(false);
+      } else {
+        newSet.add(studentId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectAll(!selectAll);
+    if (!selectAll) {
+      // Select all visible students (filtered + current page)
+      const visibleIds = currentStudents.map(s => s.id);
+      setSelectedStudents(new Set(visibleIds));
+    } else {
+      setSelectedStudents(new Set());
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedStudents.size === 0) return;
+
+    // Enhanced confirmation popup
+    const studentIds = Array.from(selectedStudents);
+    const result = window.confirm(
+      `⚠️ PERMANENTLY DELETE ${selectedStudents.size} STUDENT(S)?\n\n` +
+      `This will remove:\n` +
+      `• Database records\n` +
+      `• Face images (StudentFaceData/${studentIds[0] || 'ID'}...)\n` +
+      `• Face encodings (.pkl files)\n\n` +
+      `Selected: ${studentIds.slice(0, 3).join(', ')}${studentIds.length > 3 ? ` +${studentIds.length-3} more` : ''}\n\n` +
+      `This action CANNOT be undone.\n\n` +
+      `Continue?`
+    );
+    
+    if (!result) return;
+
+    setBulkDeleting(true);
+    setError(null);
+
+    try {
+      // Parallel DELETE calls for efficiency
+      const deletePromises = Array.from(selectedStudents).map(async (studentId) => {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(`Failed to delete ${studentId}: ${result.detail || result.error}`);
+        }
+        return studentId;
+      });
+
+      const results = await Promise.allSettled(deletePromises);
+      
+      // Check for failures
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        throw new Error(`${failures.length}/${selectedStudents.size} deletions failed`);
+      }
+
+      // Success - refresh list and clear selection
+      setSelectedStudents(new Set());
+      setSelectAll(false);
+      fetchStudents();
+      
+      // Success message
+      window.alert(`✅ Successfully deleted ${selectedStudents.size} student(s)!\n\nFiles and database records have been permanently removed.`);
+      
+    } catch (error) {
+      setError(`Bulk delete failed: ${error.message}`);
+      console.error('Bulk delete error:', error);
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -474,6 +602,26 @@ const fetchStudents = async () => {
 
       {/* Metric Header */}
       <div className="metric-header">
+        <div className="metric-select-container">
+          <label className="metric-select-label">
+            <input
+              type="checkbox"
+              checked={selectAll}
+              onChange={toggleSelectAll}
+              className="select-all-checkbox"
+            />
+            <span className="select-all-text">
+              {selectAll ? 'Deselect All' : 'Select All'} 
+              ({currentStudents.length} visible)
+            </span>
+          </label>
+          {selectedStudents.size > 0 && (
+            <span className="selected-count">
+              {selectedStudents.size} {selectedStudents.size === 1 ? 'selected' : 'selected'}
+            </span>
+          )}
+        </div>
+        
         <div className="metric-card">
           <div className="metric-icon">👥</div>
           <div className="metric-content">
@@ -550,7 +698,7 @@ const fetchStudents = async () => {
 
           {/* Apply Button */}
           <button 
-            className="analytics-btn analytics-btn-primary" 
+            className="apply-filters-btn" 
             onClick={applyFilters}
             disabled={loading}
           >
@@ -565,7 +713,13 @@ const fetchStudents = async () => {
           currentStudents.map((student) => (
             <div key={student.id} className="student-card">
               <div className="student-header">
-                <div className="student-avatar">
+                <input
+                  type="checkbox"
+                  checked={selectedStudents.has(student.id)}
+                  onChange={() => toggleSelection(student.id)}
+                  className="student-checkbox"
+                />
+                <div className={`student-avatar ${selectedStudents.has(student.id) ? 'selected' : ''}`}>
                   <span className="avatar-icon">👤</span>
                 </div>
                 <div className="student-basic-info">
@@ -639,12 +793,6 @@ const fetchStudents = async () => {
               ({filteredStudentsStateSorted.length} total)
             </span>
             <button 
-              className="analytics-btn analytics-btn-primary"
-              onClick={() => console.log('Analytics for', filteredStudentsStateSorted.map(s => s.id))}
-            >
-              📊
-            </button>
-            <button 
               className="pagination-btn next"
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
@@ -655,8 +803,20 @@ const fetchStudents = async () => {
         )}
 
 
-      {/* Back Button */}
+      {/* Page Actions */}
       <div className="page-actions">
+        {selectedStudents.size > 0 && (
+          <button 
+            className="bulk-delete-btn" 
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+          >
+            <span className="btn-icon">🗑️</span>
+            <span className="btn-text">
+              {bulkDeleting ? 'Deleting...' : `Delete ${selectedStudents.size} Selected`}
+            </span>
+          </button>
+        )}
         <button type="button" className="back-btn" onClick={onBack}>
           <span className="btn-icon">←</span>
           <span className="btn-text">Back to Dashboard</span>

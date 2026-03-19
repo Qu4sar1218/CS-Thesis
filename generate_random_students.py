@@ -20,10 +20,10 @@ db = client["InterACTS"]
 def get_courses():
     """Get REAL courses from your 'courses' collection"""
     courses = list(db.courses.find({}, {"code":1, "name":1}).limit(50))
-    course_codes = [c["code"] for c in courses if c.get("code")]
-    if course_codes:
-        print(f"✅ Found {len(course_codes)} real courses from DB")
-        return course_codes
+    course_list = [{"code": c.get("code", ""), "name": c.get("name", "")} for c in courses if c.get("code")]
+    if course_list:
+        print(f"✅ Found {len(course_list)} real courses from DB")
+        return course_list
     print("⚠️ No courses found, using defaults")
     return ["BS Computer Science", "BS Information Technology", "BS Nursing", "BS Accountancy",
             "BS Education", "BS Engineering", "BS Business Administration"]
@@ -35,6 +35,8 @@ def get_years():
 # Load real data
 COURSES = get_courses()
 YEARS = get_years()
+SHS_YEARS = ["Grade 11", "Grade 12"]
+COLLEGE_YEARS = ["1st Year", "2nd Year", "3rd Year", "4th Year"]
 
 # Expanded name pools (more Filipino names to match your system)
 FIRST_NAMES = ["John", "Jane", "Michael", "Emily", "David", "Sarah", "Chris", "Lisa", "Mark", "Anna",
@@ -55,6 +57,12 @@ def generate_unique_student_id():
         attempts += 1
     raise Exception("Could not generate unique ID after 200 attempts")
 
+def is_shs_course(course_code, course_name):
+    """Determine if course is Senior High School based on keywords"""
+    text = (course_code + " " + course_name).lower()
+    shs_keywords = ["grade", "strand", "stem", "abm", "humss", "gas", "ict", "tvl", "shs", "11", "12"]
+    return any(keyword in text for keyword in shs_keywords)
+
 def create_student():
     """Create student matching your EXACT DB schema"""
     first = random.choice(FIRST_NAMES)
@@ -63,13 +71,21 @@ def create_student():
     
     student_id = generate_unique_student_id()
     
+    course = random.choice(COURSES)
+    if isinstance(course, dict):
+        is_shs = is_shs_course(course["code"], course["name"])
+        years = SHS_YEARS if is_shs else COLLEGE_YEARS
+    else:
+        years = COLLEGE_YEARS  # fallback for string courses
+    year = random.choice(years)
+    
     return {
         "student_id": student_id,
         "first_name": first,
         "middle_name": middle,
         "last_name": last,
-        "course": random.choice(COURSES),
-        "year": random.choice(YEARS),
+        "course": course["code"] if isinstance(course, dict) else course,
+        "year": year,
         "email": f"{first.lower()}.{last.lower()}.{student_id.lower()}@school.edu",
         "guardian_contact": f"+63 9{random.randint(17,99)} {random.randint(100,999)} {random.randint(1000,9999)}"
     }

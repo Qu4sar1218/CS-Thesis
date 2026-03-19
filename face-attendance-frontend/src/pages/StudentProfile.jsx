@@ -14,7 +14,7 @@ const formatStudentName = (firstName, middleName, lastName) => {
   const capitalizedFirst = capitalize(firstName);
   const capitalizedLast = capitalize(lastName);
 
-  const lastParts = capitalizedLast.split();
+  const lastParts = capitalizedLast.split(' ');
   if (lastParts.length > 1) {
     // Handle multiple words in last name
     const middleInitial = middleName ? ` ${middleName.charAt(0).toUpperCase()}.` : '';
@@ -29,6 +29,9 @@ const formatStudentName = (firstName, middleName, lastName) => {
 export default function StudentProfile({ onBack, userInfo }) {
   const [isEditing, setIsEditing] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'classes', 'events'
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [attendanceLogs, setAttendanceLogs] = useState({ classes: [], events: [], hallway: [] });
   const [profileData, setProfileData] = useState({
     full_name: userInfo?.full_name || '',
     email: userInfo?.email || '',
@@ -91,7 +94,28 @@ export default function StudentProfile({ onBack, userInfo }) {
       }
     };
 
+    const fetchAttendanceHistory = async () => {
+      if (!userInfo?.user_id) return;
+      setAttendanceLoading(true);
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/analytics/student/${userInfo.user_id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const allLogs = data.attendance || [];
+          setAttendanceLogs({
+            classes: allLogs.filter(log => log.mode === 'class' || !log.mode),
+            events: allLogs.filter(log => log.mode === 'events')
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching attendance history:', error);
+      } finally {
+        setAttendanceLoading(false);
+      }
+    };
+
     fetchStudentProfile();
+    fetchAttendanceHistory();
   }, [userInfo]);
 
   const handleSave = async () => {
@@ -147,89 +171,167 @@ export default function StudentProfile({ onBack, userInfo }) {
     <div className="student-profile-page">
       <button className="back-btn" onClick={onBack}>? Back</button>
 
-      <div className="profile-main-card">
-        {/* Left Panel - Profile Info */}
-        <div className="profile-left-panel">
-          {/* Profile Header */}
-          <div className="profile-header">
-            <div className="avatar-section">
-              <div className="avatar-circle">
-                {profileData.full_name.charAt(0).toUpperCase()}
-              </div>
-            </div>
-            <div className="header-info">
-              <h1 className="profile-student-name">{profileData.full_name}</h1>
-              <p className="profile-student-id">{profileData.student_id}</p>
-              <p className="student-email">{profileData.email}</p>
-            </div>
-            {!isEditing && (
-              <button className="edit-profile-btn" onClick={() => setIsEditing(true)}>Edit Profile</button>
-            )}
+      {/* Profile Header Card */}
+      <div className="profile-header-card">
+        <div className="avatar-section">
+          <div className="avatar-circle">
+            {profileData.full_name.charAt(0).toUpperCase()}
           </div>
+        </div>
+        <div className="header-info">
+          <h1 className="profile-student-name">{profileData.full_name}</h1>
+          <p className="profile-student-id">Student ID: {profileData.student_id}</p>
+          <p className="student-meta">{profileData.course} • {profileData.year}</p>
+        </div>
+      </div>
 
-          {/* Student Information Section */}
-          <div className="student-info-section">
-            <h2 className="section-title">Student Information</h2>
-            {profileLoading ? (
-              <div className="loading">
-                <div className="spinner"></div>
-                <p>Loading profile data...</p>
+      {/* Navigation Tabs */}
+      <div className="profile-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          Profile & Insights
+        </button>
+
+        <button 
+          className={`tab-btn ${activeTab === 'classes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('classes')}
+        >
+          Class Attendance
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'events' ? 'active' : ''}`}
+          onClick={() => setActiveTab('events')}
+        >
+          Event Attendance
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'hallway' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hallway')}
+        >
+          Hallway Attendance
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      <div className="profile-content">
+        
+        {/* PROFILE TAB */}
+        {activeTab === 'profile' && (
+          <div className="profile-main-layout">
+            {/* Full Width Details since Insights simplified */}
+            <div className="profile-details-card full-width">
+              <div className="card-header">
+                <h2>Personal Details</h2>
+                {!isEditing && (
+                  <button className="edit-link" onClick={() => setIsEditing(true)}>Edit</button>
+                )}
               </div>
-            ) : (
-              <>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <label className="info-label">Year Level</label>
-                    <span className="info-value">{profileData.year}</span>
+              
+              {profileLoading ? (
+                <div className="loading-state">Loading details...</div>
+              ) : (
+                <div className="info-form">
+                  <div className="info-group">
+                    <label>Full Name</label>
+                    <div className="static-value">{profileData.full_name}</div>
                   </div>
-                  <div className="info-item">
-                    <label className="info-label">Course</label>
-                    <span className="info-value">{profileData.course}</span>
+                  <div className="info-group">
+                    <label>Course & Year</label>
+                    <div className="static-value">{profileData.course} - {profileData.year}</div>
                   </div>
-                  <div className="info-item">
-                    <label className="info-label">Email</label>
+                  <div className="info-group">
+                    <label>Email Address</label>
                     {isEditing ? (
                       <input
                         type="email"
                         name="email"
                         value={profileData.email}
                         onChange={handleChange}
-                        className="info-input"
+                        className="edit-input"
                       />
                     ) : (
-                      <span className="info-value">{profileData.email}</span>
+                      <div className="static-value">{profileData.email || 'No email set'}</div>
                     )}
                   </div>
+                  
                   {isEditing && (
-                    <div className="info-item">
-                      <label className="info-label">New Password</label>
+                    <div className="info-group">
+                      <label>New Password</label>
                       <input
                         type="password"
                         name="password"
                         value={profileData.password}
                         onChange={handleChange}
-                        className="info-input"
-                        placeholder="Enter new password (leave empty to keep current)"
+                        className="edit-input"
+                        placeholder="Leave blank to keep current"
                       />
                     </div>
                   )}
-                </div>
 
-                {isEditing && (
-                  <div className="edit-actions">
-                    <button className="save-btn" onClick={handleSave}>Save</button>
-                    <button className="cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
-                  </div>
-                )}
-              </>
+                  {isEditing && (
+                    <div className="form-actions">
+                      <button className="save-btn" onClick={handleSave}>Save Changes</button>
+                      <button className="cancel-btn" onClick={() => setIsEditing(false)}>Cancel</button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Simplified Insights below details */}
+              <AttendanceInsightsPanel studentId={userInfo?.user_id || userInfo?.student_id} />
+            </div>
+          </div>
+        )}
+
+        {/* ATTENDANCE TABLES (Shared Structure) */}
+        {(activeTab === 'classes' || activeTab === 'events' || activeTab === 'hallway') && (
+          <div className="attendance-history-card">
+            <div className="card-header">
+              <h2>{activeTab === 'classes' ? 'Class Attendance History' : activeTab === 'events' ? 'Event Participation History' : 'Hallway Sessions'}</h2>
+            </div>
+            
+            {attendanceLoading ? (
+              <div className="loading-state">Loading attendance records...</div>
+            ) : (
+              <div className="table-responsive">
+                <table className="attendance-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>{activeTab === 'classes' ? 'Subject/Class' : activeTab === 'events' ? 'Event' : 'Session ID'}</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceLogs[activeTab]?.length > 0 ? (
+                      attendanceLogs[activeTab].map((record, idx) => (
+                        <tr key={record._id || idx}>
+                          <td>{record.date}</td>
+                          <td>{record.check_in_time || record.time || '-'}</td>
+                          <td>{activeTab === 'classes' ? (record.subject || record.class_name || 'Class') : 
+                                activeTab === 'events' ? (record.event_name || 'Event') : 
+                                (record.session_id || record.source_collection || 'Hallway')}</td>
+                          <td>
+                            <span className={`status-badge ${record.status?.toLowerCase()}`}>
+                              {record.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="empty-state">No attendance records found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Right Panel - Attendance Insights */}
-        <div className="profile-right-panel">
-          <AttendanceInsightsPanel studentId={userInfo?.user_id || userInfo?.student_id} />
-        </div>
+        )}
       </div>
     </div>
   );

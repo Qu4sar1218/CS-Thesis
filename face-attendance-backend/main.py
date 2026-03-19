@@ -17,6 +17,16 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 import jwt
 
+def serialize_doc(obj):
+    """Recursively convert ObjectId to str for JSON serialization."""
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, dict):
+        return {k: serialize_doc(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize_doc(i) for i in obj]
+    return obj
+
 import cv2
 import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, status, UploadFile, File, Form
@@ -27,6 +37,15 @@ from werkzeug.utils import secure_filename
 
 import utils  # Setup face recognition model FIRST (local import)
 from utils import setup_face_recognition_model, is_face_model_ready
+
+# Import database helpers to replace fallbacks
+from database import (
+    get_attendance_collection,
+    get_class_attendance_collection, 
+    get_event_attendance_collection,
+    get_hallway_attendance_collection
+)
+import threading
 
 # Face recognition import - model now properly configured
 try:
@@ -305,17 +324,18 @@ current_class_schedule = None
 attendance_mode = "IN"  # Default to IN mode (for admin to track time in/time out)
 attendance_mode_lock = threading.Lock()
 
-# Legacy monitoring lock (kept for backward compatibility but no longer used)
-monitoring_lock = threading.Lock()
-# Legacy monitoring variables (kept for backward compatibility but no longer used)
+# === MONITORING GLOBALS (Cleaned) ===
 monitoring_mode = False
 monitoring_session_id = None
 monitoring_start_time = None
 monitoring_previous_class_id = None
-monitoring_revalidation_seconds = 120
-monitoring_timer_thread = None
 monitoring_students_pending = []
+monitoring_timer_thread = None
 monitoring_finalize_status = "ABSENT"
+monitoring_revalidation_seconds = 300  # 5 minutes default
+is_monitoring_revalidation = False
+active_monitoring_session = None
+monitoring_lock = threading.Lock()
 
 def is_class_scheduled_today(schedule: str) -> bool:
     """
@@ -976,7 +996,8 @@ async def process_event_attendance_scan(scan_record: dict) -> dict:
         "status": attendance_status
     }
 
-    result = await db.attendance.update_one(
+    event_collection = await get_event_attendance_collection()
+    result = await event_collection.update_one(
         {
             "student_id": student_id,
             "event_id": event_id,
@@ -1076,20 +1097,24 @@ def require_roles(allowed_roles: List[str]):
 
     return _role_dependency
 
+# Fallbacks removed - using database.py exclusively
+from database import get_all_attendance_across_modes, save_attendance_to_db
+
 async def save_attendance_to_db(record: dict):
     """Save attendance record to database."""
     try:
-        attendance_collection = db.attendance
+        mode = record.get('mode', 'class')
+        attendance_collection = await get_attendance_collection(mode)
         result = await attendance_collection.insert_one(record)
-        logger.info(f"âœ… Attendance saved to DB: {record['name']}")
+        logger.info(f"✅ Attendance saved to {mode}: {record.get('name', 'unknown')}")
     except Exception as e:
-        logger.error(f"âŒ Failed to save attendance to DB: {e}")
+        logger.error(f"❌ Failed to save attendance to DB: {e}")
 
-async def update_attendance_status(student_id: str, class_id: str, status: str, record: Optional[dict] = None):
+async def update_attendance_status(student_id: str, class_id: str, status: str, record: Optional[dict] = None, collection_name: str = "attendance"):
     """Upsert attendance status for a student in a class."""
     try:
-        current_date = datetime.now().strftime('%Y-%m-%d')
-        attendance_collection = db.attendance
+        current_date = datetime.now().strftime('%Y-%m-%d')       
+        attendance_collection = getattr(db, collection_name)
 
         record_payload = record or {}
         set_fields = {
@@ -1187,16 +1212,6 @@ def record_attendance(student_id, name, course, year, first_name="", middle_name
     class_start = parse_class_start_time(current_class_schedule or "")
     status = determine_attendance_status(now_dt, class_start, 15) if class_start else "present"
     message = None  # Initialize message for recently recognized
-    is_monitoring_revalidation = False
-    active_monitoring_session = None
-
-    with monitoring_lock:
-        if monitoring_mode and monitoring_session_id and student_id in monitoring_students_pending:
-            is_monitoring_revalidation = True
-            active_monitoring_session = monitoring_session_id
-            status = "PRESENT"
-            monitoring_students_pending.remove(student_id)
-
     with attendance_lock:
         today_records = [
             r for r in attendance_records
@@ -1360,14 +1375,7 @@ def attendance_worker():
                                     "message": "Attendance already recorded"
                                 }
                     else:
-                        loop.run_until_complete(
-                            update_attendance_status(
-                                record['student_id'],
-                                record.get('class_id') or current_class_id,
-                                record.get('status', 'present'),
-                                record
-                            )
-                        )
+                        loop.run_until_complete(save_attendance_to_db(record))
                 except Exception as e:
                     logger.error(f"Error processing attendance record: {e}")
                     if record.get("mode") == "events":
@@ -2147,17 +2155,10 @@ def start():
 @app.post("/stop")
 def stop():
     global recognition_running, stop_streaming, latest_frame
-    global monitoring_mode, monitoring_session_id, monitoring_start_time, monitoring_previous_class_id, monitoring_students_pending
     recognition_running = False
     stop_streaming = True
     with latest_frame_lock:
         latest_frame = None
-    with monitoring_lock:
-        monitoring_mode = False
-        monitoring_session_id = None
-        monitoring_start_time = None
-        monitoring_previous_class_id = None
-        monitoring_students_pending = []
     with attendance_attempt_lock:
         last_attendance_attempt_by_student.clear()
     release_camera()
@@ -2210,56 +2211,33 @@ async def set_mode(mode_data: dict):
         event_doc = await db.events.find_one({"_id": event_object_id})
         if not event_doc:
             raise HTTPException(status_code=404, detail="Event not found")
-        await mark_event_absences_if_ended(event_id, event_doc)
-        current_class_id = None
-        current_class_schedule = None
-        current_event_id = event_id
-        with monitoring_lock:
-            monitoring_mode = False
-            monitoring_session_id = None
-            monitoring_start_time = None
-            monitoring_previous_class_id = None
-            monitoring_students_pending = []
-    else:
-        current_class_id = None
-        current_class_schedule = None
-        current_event_id = None
-        with monitoring_lock:
-            monitoring_mode = False
-            monitoring_session_id = None
-            monitoring_start_time = None
-            monitoring_previous_class_id = None
-            monitoring_students_pending = []
-
-    current_mode = mode
+        await mark_event_absences_if_ended(event_id, event_doc)       
+        current_class_id = None       
+        current_class_schedule = None      
+        current_event_id = event_id   
+    else:      
+        current_class_id = None      
+        current_class_schedule = None     
+        current_event_id = None  
+        current_mode = mode
     return {"message": f"Mode set to {mode}", "event_id": event_id}
 
 
 
 
 @app.get("/status")
-def get_status():
-    """Get current system status."""
-    with monitoring_lock:
-        active_monitoring = {
-            "enabled": monitoring_mode,
-            "session_id": monitoring_session_id,
-            "started_at": monitoring_start_time.strftime("%Y-%m-%d %H:%M:%S") if monitoring_start_time else None,
-            "previous_class_id": monitoring_previous_class_id,
-            "pending_count": len(monitoring_students_pending)
-        }
-
-    return {
+def get_status():    
+    """Get current system status."""   
+    return {  
         "status": "running" if recognition_running else "stopped",
-        "recognition_running": recognition_running,
-        "camera_active": active_camera is not None,
-        "faces_loaded": len(known_face_names),
-        "current_mode": current_mode,
-        "current_event_id": current_event_id,
-        "current_class_id": current_class_id,
-        "monitoring": active_monitoring,
-        "attendance_mode": attendance_mode
-    }
+        "recognition_running": recognition_running,       
+        "camera_active": active_camera is not None,       
+        "faces_loaded": len(known_face_names),   
+        "current_mode": current_mode,      
+        "current_event_id": current_event_id,      
+        "current_class_id": current_class_id,       
+        "attendance_mode": attendance_mode    
+     }
 
 
 @app.post("/attendance-mode")
@@ -2438,7 +2416,7 @@ def test_camera(payload: dict):
 def get_attendance():
     """Get current attendance records."""
     with attendance_lock:
-        return {"attendance": attendance_records.copy()}
+        return {"attendance": [serialize_doc(r) for r in attendance_records.copy()]}
 
 @app.get("/recently-recognized")
 def get_recently_recognized():
@@ -2479,16 +2457,21 @@ def get_recently_recognized():
 
 @app.get("/attendance-db")
 async def get_attendance_from_db():
-    """Get attendance records from database."""
+    """Get attendance records from all collections."""
     try:
-        attendance_collection = db.attendance
-        records = []
-        async for record in attendance_collection.find().sort("timestamp", -1).limit(100):
-            record['_id'] = str(record['_id'])  # Convert ObjectId to string
-            records.append(record)
-        return {"attendance": records}
+        all_records = []
+        for mode in ['class', 'events', 'hallway']:
+            collection = await get_attendance_collection(mode)
+            records = []
+            async for record in collection.find().sort("timestamp", -1).limit(50):
+                record = serialize_doc(dict(record))
+                record['mode'] = mode
+                records.append(record)
+            all_records.extend(records)
+        all_records.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return {"attendance": all_records[:100]}
     except Exception as e:
-        logger.error(f"âŒ Failed to fetch attendance from DB: {e}")
+        logger.error(f"❌ Failed to fetch attendance from DB: {e}")
         return JSONResponse({"error": "Failed to fetch attendance"}, status_code=500)
 
 
@@ -3500,12 +3483,17 @@ async def finalize_monitoring_mode(payload: dict):
 @app.get("/attendance/class/{class_id}/today")
 async def get_today_class_attendance(class_id: str):
     """Get today's attendance records for a class from database."""
-    today = datetime.now().strftime("%Y-%m-%d")
-    records = []
-    async for record in db.attendance.find({"class_id": class_id, "date": today}).sort("timestamp", -1):
-        record["_id"] = str(record["_id"])
-        records.append(record)
-    return {"class_id": class_id, "date": today, "attendance": records}
+    try:
+        class_collection = await get_class_attendance_collection()
+        today = datetime.now().strftime("%Y-%m-%d")
+        records = []
+        async for record in class_collection.find({"class_id": class_id, "date": today}).sort("timestamp", -1):
+            record["_id"] = str(record["_id"])
+            records.append(record)
+        return {"class_id": class_id, "date": today, "attendance": records}
+    except Exception as e:
+        logger.error(f"Database error in get_today_class_attendance: {e}")
+        return {"class_id": class_id, "date": datetime.now().strftime("%Y-%m-%d"), "attendance": [], "error": str(e)}
 
 
 @app.post("/attendance/initialize-class/{class_id}")
@@ -3523,11 +3511,11 @@ async def initialize_class_attendance(class_id: str):
     current_date = datetime.now().strftime('%Y-%m-%d')
     current_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    attendance_collection = db.attendance
+    class_collection = await get_class_attendance_collection()
     initialized_count = 0
 
     for student_id in enrolled_students:
-        result = await attendance_collection.update_one(
+        result = await class_collection.update_one(
             {"student_id": student_id, "class_id": class_id, "date": current_date},
             {
                 "$setOnInsert": {
@@ -3565,7 +3553,8 @@ async def check_in(attendance_data: dict):
 
     current_time = datetime.now()
     current_date = current_time.strftime('%Y-%m-%d')
-    update_result = await db.attendance.update_one(
+    class_collection = await get_class_attendance_collection()
+    update_result = await class_collection.update_one(
         {"student_id": student_id, "class_id": class_id, "date": current_date},
         {
             "$set": {
@@ -3594,7 +3583,8 @@ async def check_out(attendance_data: dict):
     class_id = attendance_data["class_id"]
 
     current_time = datetime.now()
-    result = await db.attendance.update_one(
+    class_collection = await get_class_attendance_collection()
+    result = await class_collection.update_one(
         {
             "student_id": student_id,
             "class_id": class_id,
@@ -3859,7 +3849,7 @@ async def record_attendance_for_verified_receipt(receipt: dict, event_doc: dict)
     ) if student else receipt.get("student_name", "Unknown")
     
     # Check if attendance already recorded (check both current date and event date for backward compatibility)
-    existing_record = await db.attendance.find_one({
+    existing_record = await get_event_attendance_collection().find_one({
         "student_id": student_id,
         "event_id": event_id,
         "$or": [{"date": attendance_date}, {"date": current_date}]
@@ -3901,7 +3891,7 @@ async def record_attendance_for_verified_receipt(receipt: dict, event_doc: dict)
         "verified_by_receipt": True  # Flag to indicate attendance was recorded via receipt verification
     }
     
-    await db.attendance.insert_one(attendance_record)
+    await get_event_attendance_collection().insert_one(attendance_record)
     logger.info(f"✅ Auto-recorded attendance for student {student_id} in event {event_id} as {attendance_status}")
     
     # Update recently_recognized to show success status in the frontend GIF
@@ -4067,34 +4057,30 @@ async def get_attendance_summary(date_from: str = None, date_to: str = None):
 @app.get("/analytics/student/{student_id}")
 async def get_student_attendance(student_id: str, date_from: str = None, date_to: str = None):
     """Get attendance records for a specific student."""
-    query = {"student_id": student_id}
+    records = await get_all_attendance_across_modes({'$regex': student_id, '$options': 'i'})
+    student_records = [r for r in records if r.get('student_id') == student_id]
     if date_from and date_to:
-        query["date"] = {"$gte": date_from, "$lte": date_to}
-
-    records = []
-    async for record in db.attendance.find(query).sort("date", -1):
+        student_records = [r for r in student_records if date_from <= r.get('date', '') <= date_to]
+    student_records.sort(key=lambda x: x.get('date', ''), reverse=True)
+    
+    for record in student_records:
         record["_id"] = str(record["_id"])
-        records.append(record)
 
-    return {"student_id": student_id, "attendance": records}
+    return {"student_id": student_id, "attendance": student_records}
 
 @app.get("/analytics/student/{student_id}/insights")
 async def get_student_attendance_insights(student_id: str):
     """Get comprehensive attendance insights for a student."""
     # Get total attendance summary - EXCLUDE event attendance (mode: "events")
     # Only count class/subject attendance for the main summary
-    pipeline = [
-        {"$match": {"student_id": student_id, "mode": {"$ne": "events"}}},
-        {"$group": {
-            "_id": None,
-            "total_sessions": {"$sum": 1},
-            "present_count": {"$sum": {"$cond": [{"$eq": ["$status", "present"]}, 1, 0]}},
-            "absent_count": {"$sum": {"$cond": [{"$eq": ["$status", "absent"]}, 1, 0]}}
-        }}
-    ]
-
-    summary_result = await db.attendance.aggregate(pipeline).to_list(length=1)
-    summary = summary_result[0] if summary_result else {"total_sessions": 0, "present_count": 0, "absent_count": 0}
+    all_records = await get_all_attendance_across_modes()
+    class_records = [r for r in all_records if r.get('student_id') == student_id and r.get('mode') != 'events']
+    
+    summary = {
+        "total_sessions": len(class_records),
+        "present_count": len([r for r in class_records if r.get('status') == 'present']),
+        "absent_count": len([r for r in class_records if r.get('status') == 'absent'])
+    }
 
     total_sessions = summary["total_sessions"]
     attendance_percentage = (summary["present_count"] / total_sessions * 100) if total_sessions > 0 else 0

@@ -1,5 +1,7 @@
 import os
 import sys
+
+import face_recognition
 try:
     from pkg_resources import resource_filename
 except ImportError:
@@ -32,9 +34,9 @@ def setup_face_recognition_model():
         # Import required packages for model location
         import face_recognition_models
         
-        # Get the exact path to the model file
+        # Get the exact path to the model file  
         model_path = resource_filename('face_recognition_models', 
-                                     'models/face_recognition_model_v1.dat')
+                                     'dlib_face_recognition_resnet_model_v1.dat')
         
         if not os.path.exists(model_path):
             logger.warning(f"Model file not found at: {model_path}")

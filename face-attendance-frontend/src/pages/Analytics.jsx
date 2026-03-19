@@ -72,12 +72,45 @@ export default function Analytics({ onBack }) {
     download: <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
   };
 
-  const normalizeStatus = (status) => {
-    const normalized = (status || '').toString().trim().toUpperCase();
-    if (['PRESENT'].includes(normalized)) return 'Present';
-    if (['LATE'].includes(normalized)) return 'Late';
-    return 'Absent';
+  const normalizeYear = (year) => {
+    if (!year || typeof year !== 'string') return 'Unknown';
+    
+    let normalized = year.trim().toLowerCase();
+    
+    // Handle Grade levels
+    if (normalized.includes('grade')) {
+      normalized = normalized.replace(/grade\s*(\d+)/i, 'Grade $1');
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
+    
+    // Strip common suffixes
+    normalized = normalized.replace(/\s*(college|year level)/gi, '');
+    
+    // Standardize ordinal formats
+    const ordinalMap = {
+      '1st': '1st Year',
+      '2nd': '2nd Year', 
+      '3rd': '3rd Year',
+      '4th': '4th Year',
+      '1': '1st Year',
+      '2': '2nd Year',
+      '3': '3rd Year',
+      '4': '4th Year'
+    };
+    
+    for (const [key, value] of Object.entries(ordinalMap)) {
+      if (normalized.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Fallback: title case
+    return normalized.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
+
+
 
   const fetchData = useCallback(async () => {
     try {
@@ -92,25 +125,18 @@ export default function Analytics({ onBack }) {
       const studentsMapData = {};
       const yearSet = new Set();
       studentsData.students?.forEach(s => {
+        const normalizedYear = normalizeYear(s.year);
         studentsMapData[s.student_id] = {
           name: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.student_id,
           course: s.course || 'Unknown',
-          year_level: s.year || 'Unknown'
+          year_level: normalizedYear
         };
-        yearSet.add(s.year || 'Unknown');
+        yearSet.add(normalizedYear);
       });
       setYearLevels(Array.from(yearSet).sort());
 
-      const attendanceRes = await fetch(`${BACKEND_URL}/attendance-db`);
-      const attendanceData = await attendanceRes.json();
-      let enriched = attendanceData.attendance?.map(record => ({
-        ...record,
-        name: studentsMapData[record.student_id]?.name || record.name || record.student_id || 'Unknown',
-        course: studentsMapData[record.student_id]?.course || record.course || 'Unknown', 
-        year_level: studentsMapData[record.student_id]?.year_level || record.year || 'Unknown',
-        attendance_status: normalizeStatus(record.status)
-      })) || [];
-      setRawAttendance(enriched);
+      // Attendance data cleared - charts show zero
+      setRawAttendance([]);
     } catch (err) {
       setError(`Failed to load data: ${err.message}`);
     } finally {
@@ -139,7 +165,7 @@ export default function Analytics({ onBack }) {
   const applyFilters = () => {
     let data = [...rawAttendance]; // Always filter from the original raw data
     if (filters.course !== 'All') data = data.filter(d => d.course === filters.course);
-    if (filters.yearLevel !== 'All') data = data.filter(d => d.year_level === filters.yearLevel);
+    if (filters.yearLevel !== 'All') data = data.filter(d => normalizeYear(d.year_level) === filters.yearLevel);
     if (filters.status !== 'All') data = data.filter(d => d.attendance_status === filters.status);
     if (filters.startDate) data = data.filter(d => d.date >= filters.startDate);
     if (filters.endDate) data = data.filter(d => d.date <= filters.endDate);
@@ -251,23 +277,27 @@ datasets: [
       ]
     });
 
-    // Year Distribution (PolarArea)
-    const yearTotals = {};
-    data.forEach(d => yearTotals[d.year_level] = (yearTotals[d.year_level] || 0) + 1);
+    // Year Distribution (PolarArea) - Normalize keys for consistency
+    const yearTotalsRaw = {};
+    data.forEach(d => {
+      const normalizedKey = normalizeYear(d.year_level);
+      yearTotalsRaw[normalizedKey] = (yearTotalsRaw[normalizedKey] || 0) + 1;
+    });
     setYearPolarData({
-      labels: Object.keys(yearTotals),
+      labels: Object.keys(yearTotalsRaw),
       datasets: [{ 
-          data: Object.values(yearTotals), 
-          backgroundColor: Object.keys(yearTotals).map((_, i) => colorPalette[i % colorPalette.length])
+          data: Object.values(yearTotalsRaw), 
+          backgroundColor: Object.keys(yearTotalsRaw).map((_, i) => colorPalette[i % colorPalette.length])
       }]
     });
 
-    // Attendance Trends (Line)
+    // Attendance Trends (Line) - Normalize keys for consistency
     const yearStats = {};
     data.forEach(d => {
-      if (!yearStats[d.year_level]) yearStats[d.year_level] = { total: 0, attended: 0 };
-      yearStats[d.year_level].total++;
-      if (d.attendance_status !== 'Absent') yearStats[d.year_level].attended++;
+      const normalizedKey = normalizeYear(d.year_level);
+      if (!yearStats[normalizedKey]) yearStats[normalizedKey] = { total: 0, attended: 0 };
+      yearStats[normalizedKey].total++;
+      if (d.attendance_status !== 'Absent') yearStats[normalizedKey].attended++;
     });
     const yearStatLabels = Object.keys(yearStats);
     const rates = yearStatLabels.map(l => Math.round((yearStats[l].attended / yearStats[l].total) * 100 || 0));
@@ -280,12 +310,6 @@ datasets: [
 
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
-
-  const getUniqueOptions = (field) => {
-    // Use rawAttendance to ensure all options are always available
-    const options = Array.from(new Set(rawAttendance.map(d => d[field] || 'Unknown'))).sort();
-    return ['All', ...options];
   };
 
   const exportData = () => {

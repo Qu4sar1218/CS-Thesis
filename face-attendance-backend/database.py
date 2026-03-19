@@ -1,3 +1,4 @@
+import asyncio
 import os
 import random
 import threading
@@ -74,26 +75,63 @@ def format_student_name(first_name, middle_name, last_name):
         middle_initial = f" {middle_name[0].upper()}." if middle_name else ""
         return f"{capitalized_first}{middle_initial} {capitalized_last}".strip()
 
+import time
+from typing import Optional
+
+# Globals for connection state
+client: Optional[AsyncIOMotorClient] = None
 db = None
+_connection_retries = 0
+_max_retries = 3
+
+async def ensure_mongodb_connection() -> bool:
+    """Ensure MongoDB connection is established with retry logic."""
+    global client, db, _connection_retries
+    
+    if db is not None and client is not None:
+        try:
+            # Quick ping test
+            await client.admin.command('ping')
+            return True
+        except:
+            pass  # Connection invalid, retry
+    
+    _connection_retries += 1
+    if _connection_retries > _max_retries:
+        print(f"❌ Max retries ({_max_retries}) exceeded for MongoDB connection")
+        return False
+    
+    try:
+        print(f"🔄 Connecting to MongoDB (attempt {_connection_retries}/{_max_retries})...")
+        client = AsyncIOMotorClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
+        db = client["InterACTS"]
+        
+        # Test connection
+        await client.admin.command('ping')
+        print("✅ MongoDB connected successfully")
+        _connection_retries = 0
+        return True
+        
+    except Exception as e:
+        print(f"❌ Connection attempt {_connection_retries} failed: {e}")
+        if client:
+            client.close()
+            client = None
+        db = None
+        if _connection_retries < _max_retries:
+            await asyncio.sleep(2 ** _connection_retries)  # Exponential backoff
+        return False
 
 async def connect_to_mongodb():
-    """Connect to MongoDB."""
-    global client, db
-    try:
-        # Replace with your MongoDB connection string
-        client = AsyncIOMotorClient("mongodb://localhost:27017")
-        db = client["InterACTS"]
-        print("✅ Connected to MongoDB")
-    except Exception as e:
-        print(f"❌ Failed to connect to MongoDB: {e}")
-        raise
+    """Connect to MongoDB (legacy - use ensure_mongodb_connection())."""
+    await ensure_mongodb_connection()
 
 async def close_mongodb_connection():
     """Close MongoDB connection."""
     global client
     if client:
         client.close()
-        logger.info("✅ MongoDB connection closed")
+        print("✅ MongoDB connection closed")
 
 # Authentication utilities
 def verify_password(plain_password, hashed_password):
@@ -112,26 +150,99 @@ def create_access_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+async def get_attendance_collection(mode: str = 'class'):
+    """Get attendance collection based on mode with auto-connection."""
+    global client, db
+    
+    if not await ensure_mongodb_connection():
+        raise Exception(f"MongoDB unavailable after {_max_retries} retries. Is mongod running?")
+    
+    mode_map = {
+        'class': 'class_attendance',
+        'events': 'events_attendance', 
+        'hallway': 'hallway_attendance'
+    }
+    collection_name = mode_map.get(mode, 'class_attendance')
+    
+    print(f"📦 Returning collection: InterACTS.{collection_name}")
+    return db[collection_name]
+
+async def get_class_attendance_collection():
+    """Direct getter for class attendance."""
+    return await get_attendance_collection('class')
+
+async def get_event_attendance_collection():
+    """Direct getter for event attendance."""
+    return await get_attendance_collection('events')
+
+async def get_hallway_attendance_collection():
+    """Direct getter for hallway attendance."""
+    return await get_attendance_collection('hallway')
+
+async def get_all_attendance_across_modes(date_filter: str = None):
+    """
+    Aggregate attendance from ALL mode collections for analytics.
+    Returns unified cursor across class_attendance + events_attendance + hallway_attendance.
+    Optional date filter for performance.
+    """
+    global client, db
+    if not await ensure_mongodb_connection():
+        raise Exception("MongoDB unavailable")
+    
+    pipelines = []
+    
+    # Class attendance
+    class_pipeline = [{'$match': {'mode': 'class'}}]
+    if date_filter:
+        class_pipeline[0]['$match']['date'] = date_filter
+    pipelines.append({'collection': 'class_attendance', 'pipeline': class_pipeline})
+    
+    # Events attendance
+    events_pipeline = [{'$match': {'mode': 'events'}}]
+    if date_filter:
+        events_pipeline[0]['$match']['date'] = date_filter
+    pipelines.append({'collection': 'events_attendance', 'pipeline': events_pipeline})
+    
+    # Hallway attendance
+    hallway_pipeline = [{'$match': {'mode': 'hallway'}}]
+    if date_filter:
+        hallway_pipeline[0]['$match']['date'] = date_filter
+    pipelines.append({'collection': 'hallway_attendance', 'pipeline': hallway_pipeline})
+    
+    all_records = []
+    for pipe in pipelines:
+        collection = db[pipe['collection']]
+        async for doc in collection.aggregate(pipe['pipeline']):
+            doc['source_collection'] = pipe['collection']
+            all_records.append(doc)
+    
+    # Sort by timestamp desc
+    all_records.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    return all_records[:100]  # Limit for API
+
 async def save_attendance_to_db(record: dict):
     """Save attendance record to database."""
     try:
-        attendance_collection = db.attendance
+        mode = record.get('mode', 'class')
+        attendance_collection = get_attendance_collection(mode)
         result = await attendance_collection.insert_one(record)
-        logger.info(f"✅ Attendance saved to DB: {record['name']}")
+        logger.info(f"✅ Attendance saved to {mode}: {record.get('name', 'unknown')}")
     except Exception as e:
         logger.error(f"❌ Failed to save attendance to DB: {e}")
 
-async def update_attendance_status(student_id: str, class_id: str, status: str):
-    """Update attendance status for a student in a class."""
+async def update_attendance_status(student_id: str, class_id_or_event_id: str, status: str, mode: str = 'class'):
+    """Update attendance status for a student. Supports class/events/hallway."""
     try:
         current_date = datetime.now().strftime('%Y-%m-%d')
-        attendance_collection = db.attendance
+        attendance_collection = await get_attendance_collection(mode)
+
+        filter_match_field = "class_id" if mode == 'class' else "event_id" if mode == 'events' else "session_id"
 
         # Update existing absent record to present
         result = await attendance_collection.update_one(
             {
                 "student_id": student_id,
-                "class_id": class_id,
+                filter_match_field: class_id_or_event_id,
                 "date": current_date,
                 "status": "absent"
             },
@@ -139,12 +250,12 @@ async def update_attendance_status(student_id: str, class_id: str, status: str):
         )
 
         if result.modified_count > 0:
-            logger.info(f"✅ Updated attendance status for {student_id} in class {class_id} to {status}")
+            logger.info(f"✅ Updated attendance status for {student_id} ({mode}) to {status}")
         else:
-            logger.warning(f"⚠️ No absent record found to update for {student_id} in class {class_id}")
+            logger.warning(f"⚠️ No absent record found to update for {student_id} ({mode})")
 
     except Exception as e:
-        logger.error(f"❌ Failed to update attendance status for {student_id}: {e}")
+        logger.error(f"❌ Failed to update attendance status for {student_id} ({mode}): {e}")
 
 # Pydantic Models
 class UserBase(BaseModel):
@@ -339,3 +450,4 @@ async def register_user(user: UserCreate):
 
     result = await db.users.insert_one(user_dict)
     return {"message": "User created successfully", "user_id": str(result.inserted_id)}
+
